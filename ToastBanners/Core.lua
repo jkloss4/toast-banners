@@ -47,6 +47,7 @@ addon.DEFAULTS = {
     presenceExitDur                = 0.8,
     presenceHoldScale              = 1,
     presenceZoneChange             = true,
+    presenceZoneEntryNameOnly      = false,
     presenceHideZoneForSubzone     = false,
     presenceSuppressZoneInMplus    = true,
     presenceSuppressInDungeon      = false,

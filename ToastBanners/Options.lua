@@ -124,6 +124,9 @@ local OFF_NOTE = "\n\nOff, Blizzard's own notification is shown instead."
 notifications:Header("Zones")
 notifications:Checkbox("Zone Entry", Get("presenceZoneChange"), Set("presenceZoneChange"),
     "When you enter a new zone." .. OFF_NOTE)
+notifications:Checkbox("Zone Name Only", Get("presenceZoneEntryNameOnly"), Set("presenceZoneEntryNameOnly"),
+    "Zone entry banners show only the zone's name, without the subzone you arrive in under it.",
+    { indent = true, enabled = Get("presenceZoneChange") })
 local SubzoneOn = GetWithFallback("presenceSubzoneChange", "presenceZoneChange")
 notifications:Checkbox("Subzone Changes", SubzoneOn, Set("presenceSubzoneChange"),
     "When you move to another area within the same zone." .. OFF_NOTE)

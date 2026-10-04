@@ -1438,6 +1438,7 @@ local function getPreviewSample(typeName)
     local L = addon.L or {}
     if typeName == "ZONE_CHANGE" then
         local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
+        if addon.GetDB("presenceZoneEntryNameOnly", false) then sub = "" end
         return { title = zone ~= "" and zone or "Elwynn Forest", subtitle = sub ~= zone and sub or "", withDiscovery = true }
     end
     if typeName == "SUBZONE_CHANGE" then

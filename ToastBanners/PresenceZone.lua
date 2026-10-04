@@ -130,7 +130,8 @@ local function ScheduleZoneNotification(isNewArea)
         if isNewArea then
             lastKnownZone = zone
             if not IsTypeEnabled("presenceZoneChange", nil, true) then return end
-            local displaySub = sub
+            -- "Zone Name Only": no subzone under the zone name (a Delve still shows its tier)
+            local displaySub = (addon.GetDB and addon.GetDB("presenceZoneEntryNameOnly", false)) and "" or sub
             if addon.IsDelveActive and addon.IsDelveActive() then
                 opts.category = "DELVES"
                 local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
