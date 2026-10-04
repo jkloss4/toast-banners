@@ -194,8 +194,8 @@ local function RequestDebounced(key, delay, callback)
         debounceTimers[key]:Cancel()
         debounceTimers[key] = nil
     end
-    if not C_Timer or not C_Timer.After then return end
-    debounceTimers[key] = C_Timer.After(delay, function()
+    if not C_Timer or not C_Timer.NewTimer then return end
+    debounceTimers[key] = C_Timer.NewTimer(delay, function()
         debounceTimers[key] = nil
         if callback then callback() end
     end)
@@ -985,8 +985,11 @@ end
 
 local onComplete
 -- OnUpdate: drives entrance/hold/exit phases; adjusts alpha and layout only (no colour or text).
+local MAX_FRAME_STEP = 1 / 30  -- a hitch (e.g. right after a loading screen) can't skip the animation ahead
+
 local function PresenceOnUpdate(_, dt)
     if anim.phase == "idle" then return end
+    dt = math.min(dt, MAX_FRAME_STEP)
     anim.elapsed = anim.elapsed + dt
 
     if subtitleTransition then

@@ -11,6 +11,9 @@ local ZONE_DEBOUNCE = 0.25
 local SUBZONE_DEDUP_TIME = 2.0
 local DELVE_TIER_WAIT_INTERVAL = 0.15
 local DELVE_TIER_WAIT_MAX = 2.0
+-- After a loading screen the game reports the zone several times while it finishes loading; zone events in this
+-- window are combined into one banner, shown once it ends
+local LOADING_SETTLE_TIME = 2.0
 
 -- ============================================================================
 -- State
@@ -21,6 +24,8 @@ local lastSubzoneTitleShown = nil
 local lastSubzoneTitleTime = 0
 local pendingDelveZoneTimer = nil
 local pendingDelveZoneRetryCount = 0
+local settleUntil = 0          -- GetTime() when the loading window ends
+local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
 
 -- ============================================================================
 -- Helpers
@@ -96,7 +101,7 @@ local function tryFireDelveZoneNotification()
                 addon.Presence.pendingDiscovery = nil
             end
         else
-            pendingDelveZoneTimer = C_Timer.After(DELVE_TIER_WAIT_INTERVAL, tryFireDelveZoneNotification)
+            pendingDelveZoneTimer = C_Timer.NewTimer(DELVE_TIER_WAIT_INTERVAL, tryFireDelveZoneNotification)
         end
     end
 end
@@ -113,10 +118,14 @@ local function ScheduleZoneNotification(isNewArea)
 
     if isNewArea then
         lastKnownZone = zone
+        pendingNewArea = true
         CancelPendingDelveZone()
     end
 
     local function fireZoneNotification()
+        -- events since the last banner were combined: a new zone among them makes this a zone entry banner
+        isNewArea = pendingNewArea
+        pendingNewArea = false
         if not addon:IsModuleEnabled("presence") then return end
         if ShouldSuppress() then return end
 
@@ -139,7 +148,7 @@ local function ScheduleZoneNotification(isNewArea)
                     displaySub = "Tier " .. tier
                 else
                     pendingDelveZoneRetryCount = 0
-                    pendingDelveZoneTimer = C_Timer.After(DELVE_TIER_WAIT_INTERVAL, tryFireDelveZoneNotification)
+                    pendingDelveZoneTimer = C_Timer.NewTimer(DELVE_TIER_WAIT_INTERVAL, tryFireDelveZoneNotification)
                     return
                 end
             elseif addon.IsInPartyDungeon and addon.IsInPartyDungeon() then
@@ -186,7 +195,7 @@ local function ScheduleZoneNotification(isNewArea)
         end
     end
     if addon.Presence.RequestDebounced then
-        addon.Presence.RequestDebounced("zone", ZONE_DEBOUNCE, fireZoneNotification)
+        addon.Presence.RequestDebounced("zone", math.max(ZONE_DEBOUNCE, settleUntil - GetTime()), fireZoneNotification)
     end
 end
 
@@ -227,4 +236,5 @@ end
 
 function addon.Presence.Zone_OnInit()
     lastKnownZone = GetZoneText() or nil
+    settleUntil = GetTime() + LOADING_SETTLE_TIME
 end

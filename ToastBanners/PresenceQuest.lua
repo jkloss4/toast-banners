@@ -632,7 +632,7 @@ local function Quest_OnUIInfoMessage(msgType, msg)
             pendingStandaloneTimer = nil
         end
 
-        pendingStandaloneTimer = C_Timer.After(UPDATE_BUFFER_TIME, function()
+        pendingStandaloneTimer = C_Timer.NewTimer(UPDATE_BUFFER_TIME, function()
             pendingStandaloneTimer = nil
             local hasPendingUpdate = false
             for _ in pairs(pendingQuestUpdateIDs) do
