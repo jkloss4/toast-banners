@@ -146,8 +146,14 @@ local function ScheduleZoneNotification(isNewArea)
         if isNewArea then
             lastKnownZone = zone
             if not IsTypeEnabled("presenceZoneChange", nil, true) then return end
-            -- "Zone Name Only": no subzone under the zone name (a Delve still shows its tier)
-            local displaySub = (addon.GetDB and addon.GetDB("presenceZoneEntryNameOnly", false)) and "" or sub
+            -- "Zone Name Only": no subzone under the zone name (a Delve still shows its tier). Landing from a flight
+            -- in a spot that would get a subzone banner shows the subzone under the zone name instead: you're already
+            -- in it, so walking won't bring its banner.
+            local subzoneShows = sub ~= "" and sub ~= zone
+                and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
+            local nameOnly = not (landed and subzoneShows)
+                and addon.GetDB and addon.GetDB("presenceZoneEntryNameOnly", false)
+            local displaySub = nameOnly and "" or sub
             if addon.IsDelveActive and addon.IsDelveActive() then
                 opts.category = "DELVES"
                 local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
@@ -165,16 +171,6 @@ local function ScheduleZoneNotification(isNewArea)
             lastSubzoneTitleShown = nil
             lastSubzoneTitleTime = 0
             addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zone), Strip(displaySub), opts)
-            -- Landing from a flight with Zone Name Only: you're already in a subzone, so walking won't bring its
-            -- banner. It's queued to follow the zone name.
-            if landed and displaySub == "" and sub ~= "" and sub ~= zone
-                and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then
-                local hideZone = addon.GetDB and addon.GetDB("presenceHideZoneForSubzone", false)
-                lastSubzoneTitleShown = Strip(sub)
-                lastSubzoneTitleTime = GetTime()
-                addon.Presence.QueueOrPlay("SUBZONE_CHANGE", Strip(sub), hideZone and "" or Strip(zone),
-                    { category = opts.category, source = "LANDING" })
-            end
         else
             if not IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then return end
             if sub == "" then return end
