@@ -14,11 +14,11 @@ Suite's core they use.
 ## Changes from Horizon Suite
 
 - **Settings page in Blizzard's style:** **Options > AddOns > Toast Banners** (or `/toastbanners`), with General,
-  Notifications and Typography tabs.
+  Notifications, Typography and Colors tabs, and a size (Large, Medium or Small) for each notification type.
 - **Preview on screen:** **Show Preview** plays the real banner, above the settings window. While it's showing, it
   changes with the settings you change.
-- **Main title and subtitle colors:** under *Typography > Colors*, titles and subtitles can each use one color instead
-  of their type's color.
+- **Colors tab:** main titles, divider lines and subtitles can each use one color instead of their type's color, and
+  every notification type can have its own main title, divider line and subtitle colors.
 - **Main title spacing:** under *Typography > Large / Medium / Small Notifications*, the space between the main title
   and the divider line.
 - Typography labels say *Main Title* and *Subtitle* (Horizon Suite: *Primary* and *Secondary*), and *colors*.

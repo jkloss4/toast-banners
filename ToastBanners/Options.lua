@@ -46,7 +46,7 @@ local page = Kit.NewPage("Toast Banners", {
         addon.ApplySettings()
     end,
 })
-local general, notifications, typography = unpack(page:Tabs({ "General", "Notifications", "Typography" }))
+local general, notifications, typography, colors = unpack(page:Tabs({ "General", "Notifications", "Typography", "Colors" }))
 
 ---------------------------------------------------------------------------
 -- Preview: plays the real banner on screen
@@ -264,51 +264,111 @@ typography:Header("Discovery Line")
 typography:Slider("Discovery Size", 12, 40, 1, Get("presenceDiscoverySize"), Set("presenceDiscoverySize"), nil,
     "Font size of the \"Discovered\" line under the zone name.")
 
-typography:Header("Colors")
-local TitleByType = Get("presenceTitleColorByType")
-typography:Checkbox("Color Main Titles by Type", TitleByType, Set("presenceTitleColorByType"),
-    "Main titles take the color of the banner's type: gold for campaign quests, purple for world quests, green for "
-    .. "completed quests, bronze for achievements and so on.\n\nOff, every main title uses Main Title Color. Boss "
-    .. "emotes and Zone Type Colors keep their own colors.")
-typography:ColorSwatch("Main Title Color", GetColor("presenceTitleColor"), SetColor("presenceTitleColor"),
-    "Color of every main title, and its divider line.",
-    { indent = true, enabled = function() return not TitleByType() end })
-local SubtitleByType = Get("presenceSubtitleColorByType")
-typography:Checkbox("Color Subtitles by Type", SubtitleByType, Set("presenceSubtitleColorByType"),
-    "Subtitles take the color of the banner's type: gold for zone banners, light gray for the rest.\n\nOff, every "
-    .. "subtitle uses Subtitle Color.")
-typography:ColorSwatch("Subtitle Color", GetColor("presenceSubtitleColor"), SetColor("presenceSubtitleColor"),
-    "Color of every subtitle.", { indent = true, enabled = function() return not SubtitleByType() end })
-typography:ColorSwatch("Boss Emote Color", GetColor("presenceBossEmoteColor"), SetColor("presenceBossEmoteColor"),
-    "Color of the boss's name on boss emote banners.")
-typography:ColorSwatch("Discovery Line Color", GetColor("presenceDiscoveryColor"), SetColor("presenceDiscoveryColor"),
-    "Color of the \"Discovered\" line.")
-
-typography:Header("Zone Type Colors")
-local ZoneTypeOn = Get("presenceZoneTypeColoring")
-typography:Checkbox("Color by Zone Type", ZoneTypeOn, Set("presenceZoneTypeColoring"),
-    "Zone and subzone names take the color of the zone's PvP type: friendly, hostile, contested or sanctuary.")
-for _, zoneType in ipairs({ "Friendly", "Hostile", "Contested", "Sanctuary" }) do
-    local key = "presenceZoneColor" .. zoneType
-    typography:ColorSwatch(zoneType .. " Zone Color", GetColor(key), SetColor(key),
-        "Color of " .. zoneType:lower() .. " zone names.", { indent = true, enabled = ZoneTypeOn })
-end
-
 local TYPOGRAPHY_KEYS = {
     "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceDiscoveryFontPath",
     "presenceTitleFontOutline", "presenceSubtitleFontOutline", "presenceDiscoveryFontOutline",
     "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presenceTitleGapLarge",
     "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presenceTitleGapMedium",
     "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceTitleGapSmall",
-    "presenceDiscoverySize", "presenceTitleColorByType", "presenceTitleColor", "presenceSubtitleColorByType",
-    "presenceSubtitleColor", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring",
-    "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary",
+    "presenceDiscoverySize",
 }
 typography:Spacer(20)
 typography:Button("Reset Typography", function()
     for _, key in ipairs(TYPOGRAPHY_KEYS) do ToastBannersDB[key] = nil end
     addon.ApplySettings()
-end, "Sets the fonts, sizes, spacing and colors on this tab back to their defaults.")
+end, "Sets the fonts, sizes and spacing on this tab back to their defaults.")
+
+---------------------------------------------------------------------------
+-- Colors
+---------------------------------------------------------------------------
+AddPreview(colors)
+
+colors:Header("All Notifications")
+local TitleByType = Get("presenceTitleColorByType")
+colors:Checkbox("Color Main Titles by Type", TitleByType, Set("presenceTitleColorByType"),
+    "Main titles take the color of the banner's type: gold for campaign quests, purple for world quests, green for "
+    .. "completed quests, bronze for achievements and so on.\n\nOff, every main title uses Main Title Color. Boss "
+    .. "emotes and Zone Type Colors keep their own colors.")
+colors:ColorSwatch("Main Title Color", GetColor("presenceTitleColor"), SetColor("presenceTitleColor"),
+    "Color of every main title.", { indent = true, enabled = function() return not TitleByType() end })
+local DividerMatches = Get("presenceDividerMatchesTitle")
+colors:Checkbox("Divider Lines Match Main Title", DividerMatches, Set("presenceDividerMatchesTitle"),
+    "The divider line under the main title takes the main title's color.\n\nOff, every divider line uses Divider "
+    .. "Line Color.")
+colors:ColorSwatch("Divider Line Color", GetColor("presenceDividerColor"), SetColor("presenceDividerColor"),
+    "Color of every divider line.", { indent = true, enabled = function() return not DividerMatches() end })
+local SubtitleByType = Get("presenceSubtitleColorByType")
+colors:Checkbox("Color Subtitles by Type", SubtitleByType, Set("presenceSubtitleColorByType"),
+    "Subtitles take the color of the banner's type: gold for zone banners, light gray for the rest.\n\nOff, every "
+    .. "subtitle uses Subtitle Color.")
+colors:ColorSwatch("Subtitle Color", GetColor("presenceSubtitleColor"), SetColor("presenceSubtitleColor"),
+    "Color of every subtitle.", { indent = true, enabled = function() return not SubtitleByType() end })
+colors:ColorSwatch("Discovery Line Color", GetColor("presenceDiscoveryColor"), SetColor("presenceDiscoveryColor"),
+    "Color of the \"Discovered\" line under the zone name.")
+
+colors:Header("Zone Type Colors")
+local ZoneTypeOn = Get("presenceZoneTypeColoring")
+colors:Checkbox("Color by Zone Type", ZoneTypeOn, Set("presenceZoneTypeColoring"),
+    "Zone and subzone names take the color of the zone's PvP type: friendly, hostile, contested or sanctuary.")
+for _, zoneType in ipairs({ "Friendly", "Hostile", "Contested", "Sanctuary" }) do
+    local key = "presenceZoneColor" .. zoneType
+    colors:ColorSwatch(zoneType .. " Zone Color", GetColor(key), SetColor(key),
+        "Color of " .. zoneType:lower() .. " zone names.", { indent = true, enabled = ZoneTypeOn })
+end
+
+-- Each type's own main title, divider line and subtitle colors, which win over everything above
+colors:Header("Notification Types")
+local TYPE_PARTS = {
+    { "title", "Main Title", "the main title" },
+    { "line", "Divider Line", "the divider line" },
+    { "sub", "Subtitle", "the subtitle" },
+}
+
+-- The color a part has before it's customized: the type's own color (the divider line follows the main title)
+local function TypeDefaultColor(typeName, part)
+    local title, sub = addon.Presence.GetTypeDefaultColors(typeName)
+    return part == "sub" and sub or title
+end
+
+for _, entry in ipairs(PREVIEW_TYPES) do
+    local typeName, typeLabel = entry[1], entry[2]
+    colors:Expandable(typeLabel, { key = "colors" .. typeName, expanded = false })
+    for _, part in ipairs(TYPE_PARTS) do
+        local partKey, partLabel, partText = part[1], part[2], part[3]
+        local onKey = "presenceTypeColorOn_" .. typeName .. "_" .. partKey
+        local colorKey = "presenceTypeColor_" .. typeName .. "_" .. partKey
+        local function GetPartColor()
+            local c = GetDB(colorKey)
+            if type(c) == "table" and type(c[1]) == "number" then return c[1], c[2], c[3] end
+            return unpack(TypeDefaultColor(typeName, partKey))
+        end
+        colors:CheckboxColorSwatch(partLabel, Get(onKey), function(value)
+            -- turning it on starts from the color the swatch shows
+            if value and type(GetDB(colorKey)) ~= "table" then
+                ToastBannersDB[colorKey] = { GetPartColor() }
+            end
+            SetDB(onKey, value)
+        end, GetPartColor, function(r, g, b) SetDB(colorKey, { r, g, b }) end,
+            "Use your own color for " .. partText .. " of " .. typeLabel:lower() .. " banners, in place of the "
+            .. "colors set above.", { indent = true })
+    end
+end
+colors:EndExpandable()
+
+local COLOR_KEYS = {
+    "presenceTitleColorByType", "presenceTitleColor", "presenceDividerMatchesTitle", "presenceDividerColor",
+    "presenceSubtitleColorByType", "presenceSubtitleColor", "presenceBossEmoteColor", "presenceDiscoveryColor",
+    "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested",
+    "presenceZoneColorSanctuary",
+}
+colors:Spacer(20)
+colors:Button("Reset Colors", function()
+    for _, key in ipairs(COLOR_KEYS) do ToastBannersDB[key] = nil end
+    for key in pairs(ToastBannersDB) do
+        if key:find("^presenceTypeColor") then ToastBannersDB[key] = nil end
+    end
+    addon.ApplySettings()
+end, "Sets every color on this tab back to its default.")
 
 Kit.Register(page)
 

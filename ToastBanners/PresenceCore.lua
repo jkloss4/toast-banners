@@ -504,6 +504,27 @@ end
 
 local resolveTypeColors
 
+-- A color chosen for one notification type on the Colors tab ("title", "line" or "sub"), or nil.
+-- Saved as presenceTypeColor_<TYPE>_<part> = { r, g, b }, used while presenceTypeColorOn_<TYPE>_<part> is on.
+local function getTypeColor(typeName, part)
+    if not (addon.GetDB and addon.GetDB("presenceTypeColorOn_" .. typeName .. "_" .. part, false)) then return nil end
+    local c = addon.GetDB("presenceTypeColor_" .. typeName .. "_" .. part)
+    if type(c) == "table" and type(c[1]) == "number" and type(c[2]) == "number" and type(c[3]) == "number" then
+        return c
+    end
+    return nil
+end
+
+-- The colors a type gets from its type alone (before any color settings): main title, subtitle
+local function getTypeDefaultColors(typeName)
+    local cfg = TYPES[typeName]
+    if not cfg then return { 1, 1, 1 }, { 1, 1, 1 } end
+    if typeName == "BOSS_EMOTE" then
+        return addon.GetColorSetting("presenceBossEmoteColor"), getCategoryColor("DEFAULT", { 1, 1, 1 })
+    end
+    return getCategoryColor(cfg.category, { 0.9, 0.9, 0.9 }), getCategoryColor(cfg.subCategory or "DEFAULT", { 1, 1, 1 })
+end
+
 -- Title and subtitle colors: by notification type, or the custom colors when "by type" is turned off. Boss emotes
 -- and zone type coloring keep their own title colors.
 local function resolveColors(typeName, cfg, opts)
@@ -731,9 +752,18 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     SetSafeFont(layer.subText, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
     SetSafeFont(layer.subShadow, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
 
+    -- Each type's own colors win; the divider line takes the main title's color, or one color for all
+    c = getTypeColor(typeName, "title") or c
+    sc = getTypeColor(typeName, "sub") or sc
+    local lc = c
+    if addon.GetDB and not addon.GetDB("presenceDividerMatchesTitle", true) then
+        lc = addon.GetColorSetting("presenceDividerColor")
+    end
+    lc = getTypeColor(typeName, "line") or lc
+
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    layer.divider:SetVertexColor(c[1], c[2], c[3])
+    layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
 
     if compactLayout then
         layer.titleText:SetText("")
@@ -1551,3 +1581,4 @@ addon.Presence.PreviewToast         = PreviewToast
 addon.Presence.PREVIEW_TYPE_ORDER   = PREVIEW_TYPE_ORDER
 addon.Presence.PREVIEW_TYPE_LABELS = PREVIEW_TYPE_LABELS
 addon.Presence.GetDefaultSize       = function(typeName) return TYPES[typeName] and getDefaultVariant(TYPES[typeName]) end
+addon.Presence.GetTypeDefaultColors = getTypeDefaultColors
