@@ -149,11 +149,11 @@ notifications:Checkbox("World Quest Complete", GetWithFallback("presenceWorldQue
 
 notifications:Header("Scenarios")
 notifications:Checkbox("Scenario Start", GetWithFallback("presenceScenarioStart", "showScenarioEvents"),
-    Set("presenceScenarioStart"), "When you enter a scenario" .. (C_DelvesUI and " or Delve." or "."))
+    Set("presenceScenarioStart"), "When you enter a scenario" .. (addon.HAS_DELVES and " or Delve." or "."))
 notifications:Checkbox("Scenario Progress", GetWithFallback("presenceScenarioUpdate", "showScenarioEvents"),
     Set("presenceScenarioUpdate"), "When a scenario objective updates.")
 notifications:Checkbox("Scenario Complete", GetWithFallback("presenceScenarioComplete", "showScenarioEvents"),
-    Set("presenceScenarioComplete"), "When you complete a scenario" .. (C_DelvesUI and " or Delve." or "."))
+    Set("presenceScenarioComplete"), "When you complete a scenario" .. (addon.HAS_DELVES and " or Delve." or "."))
 
 notifications:Header("Other")
 notifications:Checkbox("Achievements", Get("presenceAchievement"), Set("presenceAchievement"),
@@ -171,11 +171,11 @@ notifications:Checkbox("Rare Defeated", Get("presenceRareDefeated"), Set("presen
 notifications:Header("Instances")
 notifications:Checkbox("Hide in Dungeons", Get("presenceSuppressInDungeon"), Set("presenceSuppressInDungeon"),
     "No zone, subzone or scenario banners inside a dungeon.")
-if C_DelvesUI then
+if addon.HAS_DELVES then
     notifications:Checkbox("Hide Delve Progress", Get("presenceSuppressInDelve"), Set("presenceSuppressInDelve"),
         "No objective progress banners inside a Delve. Entering and completing it still show.")
 end
-if C_MythicPlus then
+if addon.HAS_MYTHIC_PLUS then
     notifications:Checkbox("Hide in Mythic+", Get("presenceSuppressZoneInMplus"), Set("presenceSuppressZoneInMplus"),
         "No zone, subzone or scenario banners in Mythic and Mythic+ dungeons.")
 end

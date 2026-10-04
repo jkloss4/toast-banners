@@ -15,10 +15,10 @@ function addon.IsInPartyDungeon()
     return ok and instanceType == "party"
 end
 
--- True when the player is in an active Delve (guarded API). Clients without Delves (WoW: Forever) answer true from
--- C_PartyInfo.IsDelveInProgress inside ordinary dungeons, so a client with no Delves UI can never be in one.
+-- True when the player is in an active Delve (guarded API). WoW: Forever has no Delves, but its
+-- C_PartyInfo.IsDelveInProgress answers true, so only a client with Delves (addon.HAS_DELVES) can be in one.
 function addon.IsDelveActive()
-    if not C_DelvesUI then return false end
+    if not addon.HAS_DELVES then return false end
     if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
         local ok, v = pcall(C_PartyInfo.IsDelveInProgress)
         -- Truthiness, not ==: a secret return would throw on comparison.

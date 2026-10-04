@@ -7,6 +7,12 @@ local addonName, addon = ...
 
 addon.Presence = {}
 
+-- WoW: Forever (interface 1xxxx) still has the Delves and Mythic+ APIs, but not the content: its
+-- C_PartyInfo.IsDelveInProgress even answers true outdoors. Only retail has either.
+addon.IS_RETAIL = select(4, GetBuildInfo()) >= 20000
+addon.HAS_DELVES = addon.IS_RETAIL and C_DelvesUI ~= nil
+addon.HAS_MYTHIC_PLUS = addon.IS_RETAIL and C_MythicPlus ~= nil
+
 ---------------------------------------------------------------------------
 -- Saved settings
 ---------------------------------------------------------------------------
