@@ -46,7 +46,9 @@ local page = Kit.NewPage("Toast Banners", {
         addon.ApplySettings()
     end,
 })
-local general, notifications, typography, colors = unpack(page:Tabs({ "General", "Notifications", "Typography", "Colors" }))
+-- the Preview rows sit above the tabs, on every tab
+local general, notifications, typography, colors = unpack(page:Tabs(
+    { "General", "Notifications", "Typography", "Colors" }, { above = 80 }))
 
 ---------------------------------------------------------------------------
 -- Preview: plays the real banner on screen
@@ -96,8 +98,7 @@ local function PreviewType() return GetDB("presencePreviewType", "ZONE_CHANGE") 
 local Tip = SettingsTooltip or GameTooltip
 
 local function AddPreview(list)
-    list:Header("Preview")
-    list:Dropdown("Banner", PreviewOptions, PreviewType,
+    list:Dropdown("Preview Banner", PreviewOptions, PreviewType,
         function(value)
             ToastBannersDB.presencePreviewType = value
             addon.Presence.RefreshPreviewWindow(value)
@@ -117,17 +118,18 @@ local function AddPreview(list)
         Tip:SetOwner(button, "ANCHOR_RIGHT", -10, 0)
         GameTooltip_AddHighlightLine(Tip, "Preview Window")
         GameTooltip_AddNormalLine(Tip, "Opens a window with the banner drawn still, without its "
-            .. "animation. It changes with the settings you change, and with the Banner chosen above. You can drag it "
+            .. "animation. It changes with the settings you change, and with the Preview Banner chosen. You can drag it "
             .. "anywhere.", true)
         Tip:Show()
     end)
     windowButton:SetScript("OnLeave", function() Tip:Hide() end)
 end
 
+AddPreview(page)
+
 ---------------------------------------------------------------------------
 -- General
 ---------------------------------------------------------------------------
-AddPreview(general)
 
 general:Header("Display")
 general:Checkbox("Quest Type Icons", Get("showPresenceQuestTypeIcons"), Set("showPresenceQuestTypeIcons"),
@@ -248,7 +250,6 @@ notifications:Checkbox("Hide in Battlegrounds", Get("presenceSuppressInBattlegro
 ---------------------------------------------------------------------------
 -- Typography
 ---------------------------------------------------------------------------
-AddPreview(typography)
 
 local OUTLINES = {
     { label = "None", value = "" },
@@ -304,7 +305,6 @@ end, "Sets the fonts, sizes and spacing on this tab back to their defaults.")
 ---------------------------------------------------------------------------
 -- Colors
 ---------------------------------------------------------------------------
-AddPreview(colors)
 
 -- Each type's own main title, divider line and subtitle colors (and "Discovered" line for zone banners)
 colors:Header("Notification Types")
