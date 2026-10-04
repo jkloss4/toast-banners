@@ -241,7 +241,7 @@ TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
 TypeRow("Rare Defeated", "RARE_DEFEATED", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
     "When a rare creature nearby is defeated.")
 
-notifications:Header("Instances")
+notifications:Header("Hide")
 notifications:Checkbox("Hide in Dungeons", Get("presenceSuppressInDungeon"), Set("presenceSuppressInDungeon"),
     "No zone, subzone or scenario banners inside a dungeon.")
 if addon.HAS_DELVES then
@@ -258,6 +258,8 @@ notifications:Checkbox("Hide in Arenas", Get("presenceSuppressInPvP"), Set("pres
     "No zone, subzone or scenario banners inside an arena.")
 notifications:Checkbox("Hide in Battlegrounds", Get("presenceSuppressInBattleground"),
     Set("presenceSuppressInBattleground"), "No zone, subzone or scenario banners inside a battleground.")
+notifications:Checkbox("Hide in Flight", Get("presenceSuppressInFlight"), Set("presenceSuppressInFlight"),
+    "No zone, subzone, quest or scenario banners while you're on a flight path.")
 
 ---------------------------------------------------------------------------
 -- Typography

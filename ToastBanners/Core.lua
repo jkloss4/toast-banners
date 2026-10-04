@@ -68,6 +68,7 @@ addon.DEFAULTS = {
     presenceSuppressInRaid         = false,
     presenceSuppressInPvP          = false,
     presenceSuppressInBattleground = false,
+    presenceSuppressInFlight       = false,
     presenceLevelUp                = true,
     presenceBossEmote              = true,
     presenceAchievement            = true,

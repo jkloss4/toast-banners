@@ -270,13 +270,14 @@ local function IsAnyToastEnabled()
     return false
 end
 
--- True when Presence should suppress non-essential notifications (M+ zone, or instance type).
+-- True when Presence should suppress non-essential notifications (M+ zone, instance type, or a taxi flight).
 -- @return boolean
 local function ShouldSuppressType()
     if addon.GetDB and addon.GetDB("presenceSuppressZoneInMplus", true) and addon.IsInMythicDungeon and addon.IsInMythicDungeon() then
         return true
     end
     if not addon.GetDB then return false end
+    if addon.GetDB("presenceSuppressInFlight", false) and UnitOnTaxi and UnitOnTaxi("player") then return true end
     local inType = select(2, GetInstanceInfo())
     if inType == "party" and addon.GetDB("presenceSuppressInDungeon", false) then return true end
     if inType == "raid"  and addon.GetDB("presenceSuppressInRaid", false)    then return true end
