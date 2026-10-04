@@ -330,14 +330,31 @@ for _, entry in ipairs(PREVIEW_TYPES) do
 end
 colors:EndExpandable()
 
+-- Zone Type Colors color the main titles of zone entry and subzone banners, unless those types have their own
 colors:Header("Zone Type Colors")
+local ZoneEntryOwn = Get("presenceTypeColorOn_ZONE_CHANGE_title")
+local SubzoneOwn = Get("presenceTypeColorOn_SUBZONE_CHANGE_title")
+local function ZoneTypeUsable() return not (ZoneEntryOwn() and SubzoneOwn()) end
+local ZONE_TYPE_DISABLED = "Disabled: Zone Entry and Subzone Change both have their own Main Title color above."
+local function ZoneTypeTooltip()
+    local text = "Zone and subzone names take the color of the zone's PvP type: friendly, hostile, contested or "
+        .. "sanctuary."
+    if ZoneEntryOwn() and not SubzoneOwn() then
+        text = text .. "\n\nOnly subzone banners: Zone Entry has its own Main Title color above."
+    elseif SubzoneOwn() and not ZoneEntryOwn() then
+        text = text .. "\n\nOnly zone entry banners: Subzone Change has its own Main Title color above."
+    end
+    return text
+end
 local ZoneTypeOn = Get("presenceZoneTypeColoring")
-colors:Checkbox("Color by Zone Type", ZoneTypeOn, Set("presenceZoneTypeColoring"),
-    "Zone and subzone names take the color of the zone's PvP type: friendly, hostile, contested or sanctuary.")
+colors:Checkbox("Color by Zone Type", ZoneTypeOn, Set("presenceZoneTypeColoring"), ZoneTypeTooltip,
+    { enabled = ZoneTypeUsable, disabledTooltip = ZONE_TYPE_DISABLED })
 for _, zoneType in ipairs({ "Friendly", "Hostile", "Contested", "Sanctuary" }) do
     local key = "presenceZoneColor" .. zoneType
     colors:ColorSwatch(zoneType .. " Zone Color", GetColor(key), SetColor(key),
-        "Color of " .. zoneType:lower() .. " zone names.", { indent = true, enabled = ZoneTypeOn })
+        "Color of " .. zoneType:lower() .. " zone names.",
+        { indent = true, enabled = function() return ZoneTypeUsable() and ZoneTypeOn() end,
+          disabledTooltip = function() return not ZoneTypeUsable() and ZONE_TYPE_DISABLED or nil end })
 end
 
 local COLOR_KEYS = {
