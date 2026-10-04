@@ -334,27 +334,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     local stripped = Strip(msg)
     local normalized = NormalizeQuestUpdateText(stripped)
 
-    DbgWQ("ExecuteQuestUpdate trace questID=", questID, "source=", tostring(source), "isRetry=", tostring(isRetry), "isCacheMatchRetry=", tostring(isCacheMatchRetry), "isBlind=", tostring(isBlindUpdate), "isNew=", tostring(isNew))
-    DbgWQ("ExecuteQuestUpdate objKey=", objKey)
-    if oldState and type(oldState) == "table" then
-        local maxCount = math.max(#oldState, #state)
-        for i = 1, maxCount do
-            local oldO = oldState[i]
-            local newO = state[i]
-            local os = oldO and ("text=" .. tostring(oldO.text) .. " fin=" .. tostring(oldO.finished) .. " nf=" .. tostring(oldO.numFulfilled) .. " nr=" .. tostring(oldO.numRequired)) or "(nil)"
-            local ns = newO and ("text=" .. tostring(newO.text) .. " fin=" .. tostring(newO.finished) .. " nf=" .. tostring(newO.numFulfilled) .. " nr=" .. tostring(newO.numRequired)) or "(nil)"
-            DbgWQ(" ExecuteQuestUpdate obj", i, "old", os, "new", ns)
-        end
-    else
-        for i = 1, #state do
-            local newO = state[i]
-            if newO then
-                DbgWQ(" ExecuteQuestUpdate obj", i, "old", "(none)", "new", "text=" .. tostring(newO.text) .. " fin=" .. tostring(newO.finished) .. " nf=" .. tostring(newO.numFulfilled) .. " nr=" .. tostring(newO.numRequired))
-            end
-        end
-    end
-    DbgWQ("ExecuteQuestUpdate pickReason=", pickReason, "pickIdx=", tostring(pickIdx), "rawMsg=", msg, "stripped=", stripped, "normalized=", normalized)
-
     if not isRetry and not isNew and source == "QUEST_WATCH_UPDATE" and normalized and normalized:match("^0/%d+") then
         DbgWQ("ExecuteQuestUpdate ZERO_PROGRESS_RETRY in", ZERO_PROGRESS_RETRY_TIME, "s questID=", questID)
         lastQuestObjectivesCache[questID] = nil

@@ -13,9 +13,18 @@ local L = addon.L
 
 local uiErrorsHooked = false
 
+-- Blizzard's message is only taken away when a banner shows it instead: with the Discovered line or quest progress
+-- banners turned off, Blizzard's own text stays
+local function ShowsDiscoveryLine()
+    local P = addon.Presence
+    return addon.GetDB("showPresenceDiscovery", true)
+        and (P.IsTypeEnabledForType("ZONE_CHANGE") or P.IsTypeEnabledForType("SUBZONE_CHANGE"))
+end
+
 local function OnUIErrorsAddMessage(self, msg)
     local discoveredStr = L["PRESENCE_DISCOVERED"]
     if msg and msg:find(discoveredStr, 1, true) then
+        if not ShowsDiscoveryLine() then return end
         addon.Presence.SetPendingDiscovery()
         local phase = addon.Presence.animPhase and addon.Presence.animPhase()
         if addon:IsModuleEnabled("presence") and phase and (phase == "entrance" or phase == "hold" or phase == "crossfade") then
@@ -25,7 +34,8 @@ local function OnUIErrorsAddMessage(self, msg)
         if self.Clear then self:Clear() end
         return
     end
-    if addon.Presence.IsQuestText and addon.Presence.IsQuestText(msg) then
+    if addon.Presence.IsQuestText and addon.Presence.IsQuestText(msg)
+        and addon.Presence.IsTypeEnabledForType("QUEST_UPDATE") then
         if self.Clear then self:Clear() end
     end
 end

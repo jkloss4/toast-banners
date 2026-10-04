@@ -82,6 +82,9 @@ local function RestoreBlizzardFrame(frame)
         local isZoneTextFrame = (frame == ZoneTextFrame) or (frame == SubZoneTextFrame)
         if isZoneTextFrame then
             for _, ev in ipairs(ZONE_TEXT_EVENTS) do frame:RegisterEvent(ev) end
+        else
+            -- Other frames' events can't be listed to put back: Blizzard's banner returns after a reload
+            addon.reloadNeeded = true
         end
         frame:Hide()
     end)

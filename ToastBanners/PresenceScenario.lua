@@ -28,7 +28,7 @@ local cachedDelveName = nil
 -- ============================================================================
 
 local function Strip(s)
-    return addon.Presence.Strip and addon.Presence.Strip(s) or (s or "")
+    return addon.Presence.StripMarkup and addon.Presence.StripMarkup(s) or (s or "")
 end
 
 local function FormatObjective(o)
@@ -402,7 +402,19 @@ end
 -- ============================================================================
 
 function addon.Presence.Scenario_OnInit()
-    if addon.Presence._scenarioInitDone then return end
+    if addon.Presence._scenarioInitDone then
+        -- Later loading screens: a scenario left without completing it (leaving the instance) is over, so the next one
+        -- gets its start banner. One still running is left as it is.
+        if not (addon.Presence.IsScenarioActive and addon.Presence.IsScenarioActive()) then
+            wasInScenario = false
+            lastScenarioCriteriaCache = nil
+            lastScenarioObjectives = nil
+            lastScenarioTitle = nil
+            lastScenarioCategory = nil
+            cachedDelveName = nil
+        end
+        return
+    end
     addon.Presence._scenarioInitDone = true
     lastScenarioTitle = nil
     lastScenarioCategory = nil

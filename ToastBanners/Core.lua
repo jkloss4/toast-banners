@@ -22,11 +22,24 @@ function addon.GetDB(key, default)
     return value
 end
 
+StaticPopupDialogs["TOASTBANNERS_RELOAD"] = {
+    text = "Blizzard's own notification for this comes back after reloading the interface.",
+    button1 = RELOADUI or "Reload UI",
+    button2 = LATER or CANCEL,
+    OnAccept = function() ReloadUI() end,
+    timeout = 0, whileDead = true, hideOnEscape = true,
+}
+
 -- Applies the settings: frame position, fonts, which Blizzard banners are hidden, and a preview on screen
 function addon.ApplySettings()
     local P = addon.Presence
     if P.ApplyPresenceOptions then P.ApplyPresenceOptions() end
     if P.ApplyBlizzardSuppression then P.ApplyBlizzardSuppression() end
+    -- a type was turned off whose Blizzard notification, hidden until now, only works again after a reload
+    if addon.reloadNeeded then
+        addon.reloadNeeded = nil
+        StaticPopup_Show("TOASTBANNERS_RELOAD")
+    end
 end
 
 function addon.SetDB(key, value)
