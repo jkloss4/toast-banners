@@ -28,6 +28,7 @@ local loading = true           -- a loading screen is up (the addon loads during
 local settleUntil = 0          -- GetTime() when the window after a loading screen ends
 local pendingFire = nil        -- the zone banner waiting to be shown
 local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
+local landing = false          -- the waiting banner is for landing from a flight (Hide in Flight)
 
 -- ============================================================================
 -- Helpers
@@ -130,6 +131,8 @@ local function ScheduleZoneNotification(isNewArea)
         addon.Trace("zone banner fires: newArea=%s zone=%s sub=%s", tostring(pendingNewArea), tostring(GetZoneText()), tostring(GetSubZoneText()))
         isNewArea = pendingNewArea
         pendingNewArea = false
+        local landed = landing
+        landing = false
         if not addon:IsModuleEnabled("presence") then return end
         if ShouldSuppress() then return end
 
@@ -162,6 +165,16 @@ local function ScheduleZoneNotification(isNewArea)
             lastSubzoneTitleShown = nil
             lastSubzoneTitleTime = 0
             addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zone), Strip(displaySub), opts)
+            -- Landing from a flight with Zone Name Only: you're already in a subzone, so walking won't bring its
+            -- banner. It's queued to follow the zone name.
+            if landed and displaySub == "" and sub ~= "" and sub ~= zone
+                and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then
+                local hideZone = addon.GetDB and addon.GetDB("presenceHideZoneForSubzone", false)
+                lastSubzoneTitleShown = Strip(sub)
+                lastSubzoneTitleTime = GetTime()
+                addon.Presence.QueueOrPlay("SUBZONE_CHANGE", Strip(sub), hideZone and "" or Strip(zone),
+                    { category = opts.category, source = "LANDING" })
+            end
         else
             if not IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then return end
             if sub == "" then return end
@@ -257,6 +270,7 @@ function addon.Presence.Zone_OnControlGained()
         local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
         addon.Trace("flight landed zone=%s sub=%s", zone, sub)
         if zone ~= from.zone then
+            landing = true
             ScheduleZoneNotification(true)
         elseif sub ~= "" and sub ~= zone and sub ~= from.sub then
             ScheduleZoneNotification(false)
