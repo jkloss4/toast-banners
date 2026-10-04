@@ -28,7 +28,6 @@ local loading = true           -- a loading screen is up (the addon loads during
 local settleUntil = 0          -- GetTime() when the window after a loading screen ends
 local pendingFire = nil        -- the zone banner waiting to be shown
 local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
-local landing = false          -- the waiting banner is for landing from a flight (Hide in Flight)
 
 -- ============================================================================
 -- Helpers
@@ -131,8 +130,6 @@ local function ScheduleZoneNotification(isNewArea)
         addon.Trace("zone banner fires: newArea=%s zone=%s sub=%s", tostring(pendingNewArea), tostring(GetZoneText()), tostring(GetSubZoneText()))
         isNewArea = pendingNewArea
         pendingNewArea = false
-        local landed = landing
-        landing = false
         if not addon:IsModuleEnabled("presence") then return end
         if ShouldSuppress() then return end
 
@@ -146,14 +143,8 @@ local function ScheduleZoneNotification(isNewArea)
         if isNewArea then
             lastKnownZone = zone
             if not IsTypeEnabled("presenceZoneChange", nil, true) then return end
-            -- "Zone Name Only": no subzone under the zone name (a Delve still shows its tier). Landing from a flight
-            -- in a spot that would get a subzone banner shows the subzone under the zone name instead: you're already
-            -- in it, so walking won't bring its banner.
-            local subzoneShows = sub ~= "" and sub ~= zone
-                and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
-            local nameOnly = not (landed and subzoneShows)
-                and addon.GetDB and addon.GetDB("presenceZoneEntryNameOnly", false)
-            local displaySub = nameOnly and "" or sub
+            -- "Zone Name Only": no subzone under the zone name (a Delve still shows its tier)
+            local displaySub = (addon.GetDB and addon.GetDB("presenceZoneEntryNameOnly", false)) and "" or sub
             if addon.IsDelveActive and addon.IsDelveActive() then
                 opts.category = "DELVES"
                 local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
@@ -265,11 +256,14 @@ function addon.Presence.Zone_OnControlGained()
     C_Timer.After(LANDING_DELAY, function()
         local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
         addon.Trace("flight landed zone=%s sub=%s", zone, sub)
-        if zone ~= from.zone then
-            landing = true
-            ScheduleZoneNotification(true)
-        elseif sub ~= "" and sub ~= zone and sub ~= from.sub then
+        -- Where walking in shows a subzone banner (the subzone over the zone), landing shows that same banner;
+        -- elsewhere, a new zone gets its zone entry banner
+        local subzoneShows = sub ~= "" and sub ~= zone
+            and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
+        if subzoneShows and (zone ~= from.zone or sub ~= from.sub) then
             ScheduleZoneNotification(false)
+        elseif zone ~= from.zone then
+            ScheduleZoneNotification(true)
         end
     end)
 end
