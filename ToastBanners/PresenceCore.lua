@@ -1132,6 +1132,10 @@ local function Init()
 
     layerA   = CreateLayer(F)
     layerB   = CreateLayer(F)
+    -- New layers start visible: left that way, the first banner after a login or reload took the spare layer for a
+    -- banner already on screen and crossfaded out of it (its full-width divider shrinking under the new one)
+    resetLayer(layerA)
+    resetLayer(layerB)
     curLayer = layerA
     oldLayer = layerB
 
