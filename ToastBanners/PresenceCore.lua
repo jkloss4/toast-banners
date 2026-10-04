@@ -1064,10 +1064,22 @@ end
 -- against the game world; it comes back when the banner is gone (or a real banner takes its place).
 local settingsHidden = false
 
+-- Settings tooltips (the Show Preview button's, or any row the mouse passes over) stay hidden meanwhile
+local tooltipHooked = false
+
 local function HideSettingsForPreview()
-    if SettingsPanel and SettingsPanel:IsShown() then
-        settingsHidden = true
-        SettingsPanel:SetAlpha(0)
+    if not (SettingsPanel and SettingsPanel:IsShown()) then return end
+    settingsHidden = true
+    SettingsPanel:SetAlpha(0)
+    local tooltip = SettingsTooltip
+    if tooltip then
+        tooltip:Hide()
+        if not tooltipHooked then
+            tooltipHooked = true
+            tooltip:HookScript("OnShow", function(self)
+                if settingsHidden then self:Hide() end
+            end)
+        end
     end
 end
 
