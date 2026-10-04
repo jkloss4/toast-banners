@@ -165,9 +165,8 @@ general:Slider("Hold Duration", 0.5, 2, 0.1, Get("presenceHoldScale"), Set("pres
 -- A notification type turned off shows Blizzard's own banner or alert instead, where Blizzard has one
 local OFF_NOTE = "\n\nOff, Blizzard's own notification is shown instead."
 -- Blizzard announces world quests and bonus objectives starting with the same banner
-local SHARED_BANNER_NOTE = "
-
-Blizzard's own banner comes back when both World Quest Accepted and Bonus Objective are off."
+local SHARED_BANNER_NOTE = "\n\nBlizzard's own banner comes back when both World Quest Accepted and Bonus Objective "
+    .. "are off."
 
 -- Each type's row has its banner size beside it (Large, Medium or Small, set up on the Typography tab)
 local SIZE_OPTIONS = {
