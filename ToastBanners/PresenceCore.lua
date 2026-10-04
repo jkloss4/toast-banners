@@ -80,6 +80,7 @@ local FRAME_HEIGHT = 250
 local FRAME_Y_DEF  = -180
 local DIVIDER_W    = 400
 local DIVIDER_H    = 2
+local DIVIDER_Y    = -65  -- top of the divider line, from the top of the banner
 local MAX_QUEUE    = 8
 
 local ENTRANCE_DUR_DEF  = 0.7
@@ -791,14 +792,16 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     end
 
     local subGap = (cfg.subGap) or 10
-    -- The title sits on the divider, titleGap above it; the entrance animation starts it 20px higher
+    -- The title sits titleGap above the divider line and the subtitle subGap below it; the entrance animation starts
+    -- the title 20px higher and the subtitle 10px lower. Both are placed on the banner rather than on the line: the
+    -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
     layer.titleGap = getTitleGap(variant)
     layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, -65)
+    layer.divider:SetPoint("TOP", 0, DIVIDER_Y)
     layer.titleText:ClearAllPoints()
-    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap + 20)
+    layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
-    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(subGap + 10))
+    layer.subText:SetPoint("TOP", 0, DIVIDER_Y - DIVIDER_H - (subGap + 10))
 
     local showDiscovery = opts.showDiscovery or (addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
@@ -818,7 +821,7 @@ local function setTitleOffset(L, offsetY)
     if lastTitleOffsetY ~= offsetY then
         lastTitleOffsetY = offsetY
         L.titleText:ClearAllPoints()
-        L.titleText:SetPoint("BOTTOM", L.divider, "TOP", 0, (L.titleGap or 0) + offsetY)
+        L.titleText:SetPoint("BOTTOM", L.titleText:GetParent(), "TOP", 0, DIVIDER_Y + (L.titleGap or 0) + offsetY)
     end
 end
 
@@ -826,7 +829,7 @@ local function setSubOffset(L, offsetY)
     if lastSubOffsetY ~= offsetY then
         lastSubOffsetY = offsetY
         L.subText:ClearAllPoints()
-        L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -cachedSubGap + offsetY)
+        L.subText:SetPoint("TOP", 0, DIVIDER_Y - DIVIDER_H - cachedSubGap + offsetY)
     end
 end
 
