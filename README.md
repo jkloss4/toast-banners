@@ -16,7 +16,8 @@ Suite's core they use.
 - **Settings page in Blizzard's style:** **Options > AddOns > Toast Banners** (or `/toastbanners`), with General,
   Notifications, Typography and Colors tabs, and a size (Large, Medium or Small) for each notification type.
 - **Preview on screen:** **Show Preview** plays the real banner, above the settings window. While it's showing, it
-  changes with the settings you change.
+  changes with the settings you change. **Preview Window** shows the banner drawn still, without its animation, in a
+  movable window that also updates as settings change.
 - **Colors tab:** every notification type can have its own main title, divider line and subtitle colors (and
   "Discovered" line color, for zone banners).
 - **Main title spacing:** under *Typography > Large / Medium / Small Notifications*, the space between the main title

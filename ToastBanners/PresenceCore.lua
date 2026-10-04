@@ -1445,6 +1445,7 @@ local function ApplyPresenceOptions()
     reapplyLayerFonts(curLayer)
     reapplyLayerFonts(oldLayer)
     RefreshPreview()
+    if addon.Presence.RefreshPreviewWindow then addon.Presence.RefreshPreviewWindow() end
 end
 
 -- Returns the typeName of the currently playing or holding cinematic.
@@ -1530,6 +1531,95 @@ local function PreviewToast(typeName)
     PlayCinematic(typeName, sample.title, sample.subtitle, opts)
 end
 
+-- ============================================================================
+-- PREVIEW WINDOW: a banner drawn still, in a movable window, redrawn as settings change
+-- ============================================================================
+
+local WINDOW_NAME = "ToastBannersPreviewWindow"
+local PREVIEW_W, PREVIEW_H = FRAME_WIDTH, 300  -- room above and below the divider for the largest settings
+local PREVIEW_DIVIDER_Y = -150
+local previewWindow, previewHolder, previewLayer, previewTypeName
+
+-- Draw the banner in its finished state (where the entrance animation ends)
+local function DrawPreviewWindow()
+    local sample = getPreviewSample(previewTypeName)
+    local cfg = TYPES[previewTypeName]
+    if not (sample and cfg) then return end
+
+    local opts = {}
+    for k, v in pairs(sample.opts or {}) do opts[k] = v end
+    opts.showDiscovery = sample.withDiscovery and addon.GetDB("showPresenceDiscovery", true) or nil
+    -- the layer code clears a pending "Discovered" line once it shows one; this one isn't the real banner's
+    local pending = addon.Presence.pendingDiscovery
+    ApplyToastContentToLayer(previewLayer, previewTypeName, sample.title, sample.subtitle, opts)
+    addon.Presence.pendingDiscovery = pending
+
+    local layer = previewLayer
+    local compact = (previewTypeName == "QUEST_UPDATE" or previewTypeName == "SCENARIO_UPDATE")
+        and addon.GetDB("presenceHideQuestUpdateTitle", false)
+    layer.divider:ClearAllPoints()
+    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y)
+    layer.divider:SetSize(DIVIDER_W, DIVIDER_H)
+    layer.divider:SetAlpha(0.5)
+    layer.titleText:ClearAllPoints()
+    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap or 0)
+    layer.titleText:SetAlpha(compact and 0 or 1)
+    layer.titleShadow:SetAlpha(compact and 0 or 0.8)
+    if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
+    layer.subText:ClearAllPoints()
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(cfg.subGap or 10))
+    layer.subText:SetAlpha(1)
+    layer.subShadow:SetAlpha(0.8)
+    local hasDiscovery = (layer.discoveryText:GetText() or "") ~= ""
+    layer.discoveryText:SetAlpha(hasDiscovery and 1 or 0)
+    layer.discoveryShadow:SetAlpha(hasDiscovery and 0.8 or 0)
+
+    -- at the banners' own scale, as large as fits on screen
+    local scale = math.min(getFrameScale(), (UIParent:GetWidth() - 80) / PREVIEW_W, (UIParent:GetHeight() - 120) / PREVIEW_H)
+    previewHolder:SetScale(scale)
+    previewWindow:SetSize(PREVIEW_W * scale + 24, PREVIEW_H * scale + 70)
+    local label = addon.PREVIEW_LABELS and addon.PREVIEW_LABELS[previewTypeName] or previewTypeName
+    previewWindow:SetTitle("Toast Banners: " .. label)
+end
+
+local function CreatePreviewWindow()
+    local window = CreateFrame("Frame", WINDOW_NAME, UIParent, "ButtonFrameTemplate")
+    ButtonFrameTemplate_HidePortrait(window)
+    ButtonFrameTemplate_HideButtonBar(window)
+    window:SetFrameStrata("DIALOG")
+    window:SetToplevel(true)
+    window:SetPoint("TOP", 0, -60)
+    window:SetMovable(true)
+    window:SetClampedToScreen(true)
+    window:EnableMouse(true)
+    window:RegisterForDrag("LeftButton")
+    window:SetScript("OnDragStart", window.StartMoving)
+    window:SetScript("OnDragStop", window.StopMovingOrSizing)
+    tinsert(UISpecialFrames, WINDOW_NAME) -- Escape closes it
+
+    previewHolder = CreateFrame("Frame", nil, window.Inset)
+    previewHolder:SetSize(PREVIEW_W, PREVIEW_H)
+    previewHolder:SetPoint("CENTER")
+    previewLayer = CreateLayer(previewHolder)
+    return window
+end
+
+-- Open the preview window on a banner type (or switch it to that type)
+local function ShowPreviewWindow(typeName)
+    previewWindow = previewWindow or CreatePreviewWindow()
+    previewTypeName = typeName
+    DrawPreviewWindow()
+    previewWindow:Show()
+    previewWindow:Raise()
+end
+
+-- Redraw the open preview window with the current settings, on typeName when given
+local function RefreshPreviewWindow(typeName)
+    if not (previewWindow and previewWindow:IsShown()) then return end
+    previewTypeName = typeName or previewTypeName
+    DrawPreviewWindow()
+end
+
 addon.Log.registerTag("presence", "presenceDebugLive")
 
 addon.Presence.Init               = Init
@@ -1564,3 +1654,5 @@ addon.Presence.PREVIEW_TYPE_ORDER   = PREVIEW_TYPE_ORDER
 addon.Presence.PREVIEW_TYPE_LABELS = PREVIEW_TYPE_LABELS
 addon.Presence.GetDefaultSize       = function(typeName) return TYPES[typeName] and getDefaultVariant(TYPES[typeName]) end
 addon.Presence.GetTypeDefaultColors = getTypeDefaultColors
+addon.Presence.ShowPreviewWindow    = ShowPreviewWindow
+addon.Presence.RefreshPreviewWindow = RefreshPreviewWindow

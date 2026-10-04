@@ -89,16 +89,39 @@ local function PreviewOptions()
     return options
 end
 
+addon.PREVIEW_LABELS = {}
+for _, entry in ipairs(PREVIEW_TYPES) do addon.PREVIEW_LABELS[entry[1]] = entry[2] end
+
+local function PreviewType() return GetDB("presencePreviewType", "ZONE_CHANGE") end
+local Tip = SettingsTooltip or GameTooltip
+
 local function AddPreview(list)
     list:Header("Preview")
-    list:Dropdown("Banner", PreviewOptions,
-        function() return GetDB("presencePreviewType", "ZONE_CHANGE") end,
-        function(value) ToastBannersDB.presencePreviewType = value end,
-        "The banner Show Preview plays.")
-    list:Button("Show Preview", function()
-        addon.Presence.PreviewToast(GetDB("presencePreviewType", "ZONE_CHANGE"))
+    list:Dropdown("Banner", PreviewOptions, PreviewType,
+        function(value)
+            ToastBannersDB.presencePreviewType = value
+            addon.Presence.RefreshPreviewWindow(value)
+        end,
+        "The banner Show Preview and Preview Window show.")
+    local row = list:Button("Show Preview", function()
+        addon.Presence.PreviewToast(PreviewType())
     end, "Shows the banner on screen, as it appears in game. While it's showing, it changes with the settings you "
         .. "change, and stays up.")
+    -- beside it, like the paired buttons on Blizzard's pages
+    local windowButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+    windowButton:SetSize(row.Button:GetSize())
+    windowButton:SetPoint("LEFT", row.Button, "RIGHT", 10, 0)
+    windowButton:SetText("Preview Window")
+    windowButton:SetScript("OnClick", function() addon.Presence.ShowPreviewWindow(PreviewType()) end)
+    windowButton:SetScript("OnEnter", function(button)
+        Tip:SetOwner(button, "ANCHOR_RIGHT", -10, 0)
+        GameTooltip_AddHighlightLine(Tip, "Preview Window")
+        GameTooltip_AddNormalLine(Tip, "Opens a window with the banner drawn still, without its "
+            .. "animation. It changes with the settings you change, and with the Banner chosen above. You can drag it "
+            .. "anywhere.", true)
+        Tip:Show()
+    end)
+    windowButton:SetScript("OnLeave", function() Tip:Hide() end)
 end
 
 ---------------------------------------------------------------------------
