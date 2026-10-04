@@ -74,9 +74,7 @@ addon.DEFAULTS = {
     presenceAchievementProgress    = false,
     presenceQuestEvents            = true,
     presenceRareDefeated           = true,
-    presenceHideBossBanner         = true,
-    presenceHideBonusBanner        = true,
-    presenceHideTopBanner          = true,
+    presenceBossDefeated           = true,
     presenceTitleFontPath          = "__global__",
     presenceSubtitleFontPath       = "__global__",
     presenceDiscoveryFontPath      = "__global__",
@@ -140,6 +138,9 @@ addon.L = {
     PRESENCE_YOU_HAVE_REACHED_LEVEL_80    = "You have reached level 80",
     PRESENCE_YOU_HAVE_REACHED_LEVEL_X     = "You have reached level %s",
     UI_PREY                               = "Prey",
+    BOSS_DEFEATED                         = "BOSS DEFEATED",
+    BONUS_OBJECTIVE                       = "BONUS OBJECTIVE",
+    BONUS_OBJECTIVE_COMPLETE              = "BONUS OBJECTIVE COMPLETE",
 }
 
 ---------------------------------------------------------------------------
@@ -197,6 +198,7 @@ addon.QUEST_COLORS = {
     DAILY       = { 0.25, 0.88, 0.92 },
     CALLING     = { 0.20, 0.60, 1.00 },
     COMPLETE    = { 0.20, 1.00, 0.40 },
+    BONUS       = { 0.95, 0.70, 0.30 },  -- amber: bonus objectives
     ACHIEVEMENT = { 0.78, 0.48, 0.22 },
 }
 

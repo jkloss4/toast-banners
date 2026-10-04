@@ -473,6 +473,12 @@ end
 -- Event handlers (public entry points)
 -- ============================================================================
 
+-- A bonus objective: a task quest (taken on by entering its area) that isn't a world quest
+local function IsBonusObjective(questID)
+    if not (questID and C_QuestLog and C_QuestLog.IsQuestTask and C_QuestLog.IsQuestTask(questID)) then return false end
+    return not (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID))
+end
+
 -- Handle QUEST_ACCEPTED. Shows quest accept notification.
 -- @param questID number
 local function Quest_OnQuestAccepted(questID)
@@ -492,6 +498,10 @@ local function Quest_OnQuestAccepted(questID)
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)) then return end
             local L = addon.L or {}
             addon.Presence.QueueOrPlay("WORLD_QUEST_ACCEPT", L["PRESENCE_WORLD_QUEST_ACCEPTED"], questName, opts)
+        elseif IsBonusObjective(questID) then
+            -- entering a bonus objective's area (Blizzard's objective tracker top banner)
+            if not addon.Presence.IsTypeEnabledForType("BONUS_OBJECTIVE_ACCEPT") then return end
+            addon.Presence.QueueOrPlay("BONUS_OBJECTIVE_ACCEPT", addon.L["BONUS_OBJECTIVE"], questName, opts)
         else
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)) then return end
             local L = addon.L or {}
@@ -526,9 +536,15 @@ local function Quest_OnQuestTurnedIn(questID)
             return
         end
     end
+    -- the quest's state goes whether or not a banner shows
+    DisposeQuestState(questID)
+    if IsBonusObjective(questID) then
+        if not addon.Presence.IsTypeEnabledForType("BONUS_OBJECTIVE") then return end
+        addon.Presence.QueueOrPlay("BONUS_OBJECTIVE", L["BONUS_OBJECTIVE_COMPLETE"], questName, opts)
+        return
+    end
     if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)) then return end
     addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["PRESENCE_QUEST_COMPLETE"], questName, opts)
-    DisposeQuestState(questID)
 end
 
 -- Handle QUEST_REMOVED. Disposes cached quest state.

@@ -112,6 +112,9 @@ local TYPES = {
     SCENARIO_COMPLETE   = { pri = 2, category = "SCENARIO", subCategory = "DEFAULT", sz = 48, dur = 4.0 },
     ACHIEVEMENT_PROGRESS = { pri = 1, category = "ACHIEVEMENT", subCategory = "DEFAULT", sz = 28, dur = 2.5, liveUpdate = true, replaceInQueue = true, subGap = 12 },
     RARE_DEFEATED      = { pri = 2, category = "DEFAULT",  subCategory = "DEFAULT", sz = 36, dur = 3.5 },
+    BOSS_DEFEATED      = { pri = 3, category = "DUNGEON",  subCategory = "DEFAULT", sz = 48, dur = 4.5 },
+    BONUS_OBJECTIVE_ACCEPT = { pri = 1, category = "BONUS", subCategory = "DEFAULT", sz = 36, dur = 3.0 },
+    BONUS_OBJECTIVE    = { pri = 2, category = "BONUS",    subCategory = "DEFAULT", sz = 48, dur = 4.0 },
 }
 
 -- Type name -> { key, fallback, default } for IsTypeEnabledForType.
@@ -132,6 +135,9 @@ local TYPE_OPTIONS = {
     SCENARIO_COMPLETE  = { key = "presenceScenarioComplete", fallback = "showScenarioEvents",  default = true },
     ACHIEVEMENT_PROGRESS = { key = "presenceAchievementProgress", fallback = nil, default = false },
     RARE_DEFEATED      = { key = "presenceRareDefeated",      fallback = nil, default = true },
+    BOSS_DEFEATED      = { key = "presenceBossDefeated",      fallback = nil, default = true },
+    BONUS_OBJECTIVE_ACCEPT = { key = "presenceBonusAccept",   fallback = "presenceQuestEvents", default = true },
+    BONUS_OBJECTIVE    = { key = "presenceBonusComplete",     fallback = "presenceQuestEvents", default = true },
 }
 
 -- Order and L-key mapping for preview dropdown. Used by options.
@@ -139,6 +145,7 @@ local PREVIEW_TYPE_ORDER = {
     "ZONE_CHANGE", "SUBZONE_CHANGE", "QUEST_ACCEPT", "WORLD_QUEST_ACCEPT", "QUEST_UPDATE",
     "QUEST_COMPLETE", "WORLD_QUEST", "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE",
     "ACHIEVEMENT", "ACHIEVEMENT_PROGRESS", "BOSS_EMOTE", "LEVEL_UP", "RARE_DEFEATED",
+    "BOSS_DEFEATED", "BONUS_OBJECTIVE_ACCEPT", "BONUS_OBJECTIVE",
 }
 local PREVIEW_TYPE_LABELS = {
     ZONE_CHANGE = "Zone entry",
@@ -156,6 +163,9 @@ local PREVIEW_TYPE_LABELS = {
     BOSS_EMOTE = "Boss emotes",
     LEVEL_UP = "Level up",
     RARE_DEFEATED = "Rare defeated",
+    BOSS_DEFEATED = "Boss defeated",
+    BONUS_OBJECTIVE_ACCEPT = "Bonus objective",
+    BONUS_OBJECTIVE = "Bonus objective complete",
 }
 
 local debounceTimers = {}
@@ -542,7 +552,7 @@ local function resolveColors(typeName, cfg, opts)
         end
     end
     local cat = cfg.category
-    if opts.category and (typeName == "SCENARIO_START" or typeName == "SCENARIO_UPDATE" or typeName == "SCENARIO_COMPLETE" or typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") then
+    if opts.category and (typeName == "SCENARIO_START" or typeName == "SCENARIO_UPDATE" or typeName == "SCENARIO_COMPLETE" or typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE" or typeName == "BOSS_DEFEATED") then
         cat = opts.category
     elseif opts.questID then
         if (typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE") and addon.GetQuestBaseCategory then
@@ -764,7 +774,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     if layer.questTypeIcon then
         local showIcon = false
         local atlas
-        local questRelated = (typeName == "QUEST_ACCEPT" or typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE" or typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT")
+        local questRelated = (typeName == "QUEST_ACCEPT" or typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE" or typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT" or typeName == "BONUS_OBJECTIVE_ACCEPT" or typeName == "BONUS_OBJECTIVE")
         local showIcons = addon.GetDB and addon.GetDB("showPresenceQuestTypeIcons", true)
         if questRelated and opts.questID and addon.GetQuestTypeAtlas and addon.GetDB and showIcons then
             local catForAtlas = "DEFAULT"
@@ -775,7 +785,11 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
             elseif typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT" then
                 catForAtlas = "WORLD"
             end
-            atlas = addon.GetQuestTypeAtlas(opts.questID, catForAtlas)
+            if typeName == "BONUS_OBJECTIVE_ACCEPT" or typeName == "BONUS_OBJECTIVE" then
+                atlas = "QuestBonusObjective"  -- the bonus objective icon Blizzard's tracker uses
+            else
+                atlas = addon.GetQuestTypeAtlas(opts.questID, catForAtlas)
+            end
             if atlas then showIcon = true end
         elseif questRelated and opts.previewAtlas and showIcons then
             -- a preview has no real quest to pick the icon from, so its sample carries a typical one
@@ -1551,6 +1565,15 @@ local function getPreviewSample(typeName)
     end
     if typeName == "BOSS_EMOTE" then
         return { title = "Ragnaros", subtitle = "BY FIRE BE PURGED!" }
+    end
+    if typeName == "BOSS_DEFEATED" then
+        return { title = L["BOSS_DEFEATED"], subtitle = "Edwin VanCleef", opts = { category = "DUNGEON" } }
+    end
+    if typeName == "BONUS_OBJECTIVE_ACCEPT" then
+        return { title = L["BONUS_OBJECTIVE"], subtitle = "Defias Brotherhood", opts = { previewAtlas = "QuestBonusObjective" } }
+    end
+    if typeName == "BONUS_OBJECTIVE" then
+        return { title = L["BONUS_OBJECTIVE_COMPLETE"], subtitle = "Defias Brotherhood", opts = { previewAtlas = "QuestBonusObjective" } }
     end
     if typeName == "LEVEL_UP" then
         local fmt = L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]

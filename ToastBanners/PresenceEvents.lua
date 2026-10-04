@@ -72,6 +72,7 @@ local PRESENCE_EVENTS = {
     "ZONE_CHANGED_NEW_AREA",
     "PLAYER_LEVEL_UP",
     "RAID_BOSS_EMOTE",
+    "BOSS_KILL",
     "ACHIEVEMENT_EARNED",
     "QUEST_ACCEPTED",
     "QUEST_TURNED_IN",
@@ -136,6 +137,15 @@ local function OnRaidBossEmote(_, msg, unitName)
     formatted = formatted:gsub("%%s", bossName)
     formatted = strtrim(formatted)
     addon.Presence.QueueOrPlay("BOSS_EMOTE", bossName, formatted)
+end
+
+-- A dungeon or raid boss is defeated (what Blizzard's boss kill banner shows)
+local function OnBossKill(_, _, encounterName)
+    if not IsPresenceTypeEnabled("presenceBossDefeated", nil, true) then return end
+    if not encounterName or encounterName == "" then return end
+    local _, instanceType = GetInstanceInfo()
+    addon.Presence.QueueOrPlay("BOSS_DEFEATED", addon.L["BOSS_DEFEATED"], Strip(encounterName),
+        { category = instanceType == "raid" and "RAID" or "DUNGEON", source = "BOSS_KILL" })
 end
 
 local function OnPlayerEnteringWorld()
@@ -272,6 +282,7 @@ local eventHandlers = {
     ADDON_LOADED             = function(_, addonName) OnAddonLoaded(addonName) end,
     PLAYER_LEVEL_UP          = function(_, level) OnPlayerLevelUp(_, level) end,
     RAID_BOSS_EMOTE          = function(_, msg, unitName) OnRaidBossEmote(_, msg, unitName) end,
+    BOSS_KILL                = function(event, encounterID, encounterName) OnBossKill(event, encounterID, encounterName) end,
     ACHIEVEMENT_EARNED       = function(_, achID) OnAchievementEarned(_, achID) end,
     QUEST_ACCEPTED           = function(_, questID) if addon.Presence.Quest_OnQuestAccepted then addon.Presence.Quest_OnQuestAccepted(questID) end end,
     QUEST_TURNED_IN          = function(_, questID) if addon.Presence.Quest_OnQuestTurnedIn then addon.Presence.Quest_OnQuestTurnedIn(questID) end end,

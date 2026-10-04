@@ -58,15 +58,18 @@ local PREVIEW_TYPES = {
     { "SUBZONE_CHANGE", "Subzone Change" },
     { "QUEST_ACCEPT", "Quest Accepted" },
     { "WORLD_QUEST_ACCEPT", "World Quest Accepted" },
+    { "BONUS_OBJECTIVE_ACCEPT", "Bonus Objective" },
     { "QUEST_UPDATE", "Quest Progress" },
     { "QUEST_COMPLETE", "Quest Complete" },
     { "WORLD_QUEST", "World Quest Complete" },
+    { "BONUS_OBJECTIVE", "Bonus Objective Complete" },
     { "SCENARIO_START", "Scenario Start" },
     { "SCENARIO_UPDATE", "Scenario Progress" },
     { "SCENARIO_COMPLETE", "Scenario Complete" },
     { "ACHIEVEMENT", "Achievement Earned" },
     { "ACHIEVEMENT_PROGRESS", "Achievement Progress" },
     { "BOSS_EMOTE", "Boss Emote" },
+    { "BOSS_DEFEATED", "Boss Defeated" },
     { "LEVEL_UP", "Level Up" },
     { "RARE_DEFEATED", "Rare Defeated" },
 }
@@ -161,6 +164,10 @@ general:Slider("Hold Duration", 0.5, 2, 0.1, Get("presenceHoldScale"), Set("pres
 ---------------------------------------------------------------------------
 -- A notification type turned off shows Blizzard's own banner or alert instead, where Blizzard has one
 local OFF_NOTE = "\n\nOff, Blizzard's own notification is shown instead."
+-- Blizzard announces world quests and bonus objectives starting with the same banner
+local SHARED_BANNER_NOTE = "
+
+Blizzard's own banner comes back when both World Quest Accepted and Bonus Objective are off."
 
 -- Each type's row has its banner size beside it (Large, Medium or Small, set up on the Typography tab)
 local SIZE_OPTIONS = {
@@ -196,7 +203,9 @@ notifications:Header("Quests")
 TypeRow("Quest Accepted", "QUEST_ACCEPT", GetWithFallback("presenceQuestAccept", "presenceQuestEvents"),
     Set("presenceQuestAccept"), "When you accept a quest.")
 TypeRow("World Quest Accepted", "WORLD_QUEST_ACCEPT", GetWithFallback("presenceWorldQuestAccept", "presenceQuestEvents"),
-    Set("presenceWorldQuestAccept"), "When you accept a world quest.")
+    Set("presenceWorldQuestAccept"), "When you accept a world quest." .. SHARED_BANNER_NOTE)
+TypeRow("Bonus Objective", "BONUS_OBJECTIVE_ACCEPT", GetWithFallback("presenceBonusAccept", "presenceQuestEvents"),
+    Set("presenceBonusAccept"), "When you enter a bonus objective's area and it starts." .. SHARED_BANNER_NOTE)
 local QuestProgressOn = GetWithFallback("presenceQuestUpdate", "presenceQuestEvents")
 TypeRow("Quest Progress", "QUEST_UPDATE", QuestProgressOn, Set("presenceQuestUpdate"),
     "When a quest objective updates (e.g. 7/10 Boar Pelts).")
@@ -207,6 +216,8 @@ TypeRow("Quest Complete", "QUEST_COMPLETE", GetWithFallback("presenceQuestComple
     Set("presenceQuestComplete"), "When you complete a quest.")
 TypeRow("World Quest Complete", "WORLD_QUEST", GetWithFallback("presenceWorldQuest", "presenceQuestEvents"),
     Set("presenceWorldQuest"), "When you complete a world quest." .. OFF_NOTE)
+TypeRow("Bonus Objective Complete", "BONUS_OBJECTIVE", GetWithFallback("presenceBonusComplete", "presenceQuestEvents"),
+    Set("presenceBonusComplete"), "When you complete a bonus objective." .. OFF_NOTE)
 
 notifications:Header("Scenarios")
 TypeRow("Scenario Start", "SCENARIO_START", GetWithFallback("presenceScenarioStart", "showScenarioEvents"),
@@ -224,22 +235,12 @@ TypeRow("Achievement Progress", "ACHIEVEMENT_PROGRESS", Get("presenceAchievement
     .. "which achievement it is." .. OFF_NOTE)
 TypeRow("Boss Emotes", "BOSS_EMOTE", Get("presenceBossEmote"), Set("presenceBossEmote"),
     "Raid and dungeon boss emotes." .. OFF_NOTE)
+TypeRow("Boss Defeated", "BOSS_DEFEATED", Get("presenceBossDefeated"), Set("presenceBossDefeated"),
+    "When a dungeon or raid boss is defeated." .. OFF_NOTE)
 TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
     "When you gain a level." .. OFF_NOTE)
 TypeRow("Rare Defeated", "RARE_DEFEATED", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
     "When a rare creature nearby is defeated.")
-
--- Blizzard banners Toast Banners has no banner for: shown or hidden as they are
-local BANNER_NOTE = "\n\nToast Banners has no banner of its own for this. Turned off, Blizzard's comes back after the "
-    .. "interface reloads (you'll be asked)."
-notifications:Header("Blizzard Banners")
-notifications:Checkbox("Hide Boss Kill Banner", Get("presenceHideBossBanner"), Set("presenceHideBossBanner"),
-    "Hides Blizzard's banner when a dungeon or raid boss is defeated, with the loot you received." .. BANNER_NOTE)
-notifications:Checkbox("Hide Bonus Objective Banner", Get("presenceHideBonusBanner"), Set("presenceHideBonusBanner"),
-    "Hides Blizzard's banner when a bonus objective is completed." .. BANNER_NOTE)
-notifications:Checkbox("Hide Objective Tracker Banner", Get("presenceHideTopBanner"), Set("presenceHideTopBanner"),
-    "Hides the banner Blizzard's objective tracker shows at the top of the screen, such as for a new scenario "
-    .. "stage." .. BANNER_NOTE)
 
 notifications:Header("Instances")
 notifications:Checkbox("Hide in Dungeons", Get("presenceSuppressInDungeon"), Set("presenceSuppressInDungeon"),

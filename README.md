@@ -22,6 +22,8 @@ Suite's core they use.
   "Discovered" line color, for zone banners).
 - **Main title spacing:** under *Typography > Large / Medium / Small Notifications*, the space between the main title
   and the divider line.
+- **More banner types:** Boss Defeated, Bonus Objective and Bonus Objective Complete, in place of Blizzard's boss kill and
+  objective tracker banners (Horizon Suite hid those with nothing in their place).
 - Typography labels say *Main Title* and *Subtitle* (Horizon Suite: *Primary* and *Secondary*), and *colors*.
 
 `/toastbanners demo` plays every banner, one after another.

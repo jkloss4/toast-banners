@@ -189,15 +189,20 @@ local function ApplyBlizzardSuppression()
     -- so a type switched off returns its alert to Blizzard without disabling the module.
     if addon.Presence.ApplyAlertMuting then addon.Presence.ApplyAlertMuting() end
 
-    -- Blizzard banners with no Toast Banners counterpart, each hidden by its own setting (Horizon Suite always hid them)
+    -- Blizzard banners replaced by a Toast Banners type (Horizon Suite always hid them): hidden while that type is on.
+    -- The objective tracker's top banner announces both world quests and bonus objectives as you enter their area.
+    local P = addon.Presence
     local otherBanners = {
-        { key = "presenceHideBossBanner",  frame = BossBanner or _G["BossBanner"] },
-        { key = "presenceHideBonusBanner", frame = ObjectiveTrackerBonusBannerFrame or _G["ObjectiveTrackerBonusBannerFrame"] },
-        { key = "presenceHideTopBanner",   frame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"] },
+        { frame = BossBanner or _G["BossBanner"],
+          on = P.IsTypeEnabledForType("BOSS_DEFEATED") },
+        { frame = ObjectiveTrackerBonusBannerFrame or _G["ObjectiveTrackerBonusBannerFrame"],
+          on = P.IsTypeEnabledForType("BONUS_OBJECTIVE") },
+        { frame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"],
+          on = P.IsTypeEnabledForType("BONUS_OBJECTIVE_ACCEPT") or P.IsTypeEnabledForType("WORLD_QUEST_ACCEPT") },
     }
     for _, banner in ipairs(otherBanners) do
         if banner.frame then
-            if addon.GetDB(banner.key, true) then
+            if banner.on then
                 KillBlizzardFrame(banner.frame)
             else
                 RestoreBlizzardFrame(banner.frame)
