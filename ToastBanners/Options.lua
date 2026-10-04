@@ -48,7 +48,7 @@ local page = Kit.NewPage("Toast Banners", {
 })
 -- the Preview rows sit above the tabs, on every tab
 local general, notifications, typography, colors = unpack(page:Tabs(
-    { "General", "Notifications", "Typography", "Colors" }, { above = 80 }))
+    { "General", "Notifications", "Typography", "Colors" }, { above = 74 }))
 
 ---------------------------------------------------------------------------
 -- Preview: plays the real banner on screen
