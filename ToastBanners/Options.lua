@@ -105,8 +105,8 @@ local function AddPreview(list)
         "The banner Show Preview and Preview Window show.")
     local row = list:Button("Show Preview", function()
         addon.Presence.PreviewToast(PreviewType())
-    end, "Shows the banner on screen, as it appears in game. While it's showing, it changes with the settings you "
-        .. "change, and stays up.")
+    end, "Plays the banner on screen, as it appears in game. The settings window disappears while it plays, so "
+        .. "the banner is seen against the game world, and comes back when it's done.")
     -- beside it, like the paired buttons on Blizzard's pages
     local windowButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
     windowButton:SetSize(row.Button:GetSize())

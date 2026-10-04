@@ -1060,12 +1060,30 @@ end
 -- Public functions
 -- ============================================================================
 
+-- While a preview banner plays, the settings window it was started from is made invisible, so the banner is seen
+-- against the game world; it comes back when the banner is gone (or a real banner takes its place).
+local settingsHidden = false
+
+local function HideSettingsForPreview()
+    if SettingsPanel and SettingsPanel:IsShown() then
+        settingsHidden = true
+        SettingsPanel:SetAlpha(0)
+    end
+end
+
+local function RestoreSettings()
+    if not settingsHidden then return end
+    settingsHidden = false
+    if SettingsPanel then SettingsPanel:SetAlpha(1) end
+end
+
 -- One-time setup: create frame, layers, animation state. Idempotent.
 -- @return nil
 local function Init()
     if F then return end
 
     F = CreateFrame("Frame", "ToastBannersFrame", UIParent)
+    F:SetScript("OnHide", RestoreSettings)
     F:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
     F:SetPoint("TOP", 0, getFrameY())
     F:SetScale(getFrameScale())
@@ -1106,8 +1124,9 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     end
 
     ApplyToastContentToLayer(curLayer, typeName, title, subtitle, opts)
-    -- a preview is drawn above the settings window it was started from
+    -- a preview is drawn above everything, with the settings window it was started from out of the way
     F:SetFrameStrata(opts.preview and "DIALOG" or "MEDIUM")
+    if opts.preview then HideSettingsForPreview() else RestoreSettings() end
     activeOpts, activeSubtitle = opts, subtitle
 
     cachedSubGap = (cfg.subGap) or 10
