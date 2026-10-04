@@ -94,6 +94,8 @@ local PRESENCE_EVENTS = {
     "PLAYER_REGEN_ENABLED",
     "LOADING_SCREEN_ENABLED",
     "LOADING_SCREEN_DISABLED",
+    "PLAYER_CONTROL_LOST",
+    "PLAYER_CONTROL_GAINED",
 }
 
 local function OnAddonLoaded(addonName)
@@ -293,6 +295,8 @@ local eventHandlers = {
     PLAYER_ENTERING_WORLD   = function() OnPlayerEnteringWorld() end,
     LOADING_SCREEN_ENABLED   = function() if addon.Presence.Zone_OnLoadingScreen then addon.Presence.Zone_OnLoadingScreen() end end,
     LOADING_SCREEN_DISABLED  = function() if addon.Presence.Zone_OnLoadingScreenEnd then addon.Presence.Zone_OnLoadingScreenEnd() end end,
+    PLAYER_CONTROL_LOST      = function() if addon.Presence.Zone_OnControlLost then addon.Presence.Zone_OnControlLost() end end,
+    PLAYER_CONTROL_GAINED    = function() if addon.Presence.Zone_OnControlGained then addon.Presence.Zone_OnControlGained() end end,
     SCENARIO_UPDATE          = function() OnScenarioUpdate() end,
     SCENARIO_CRITERIA_UPDATE = function() OnScenarioCriteriaUpdate() end,
     SCENARIO_COMPLETED       = function() OnScenarioCompleted() end,

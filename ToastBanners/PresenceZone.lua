@@ -233,6 +233,37 @@ function addon.Presence.Zone_OnZoneChanged()
     end
 end
 
+-- Hide in Flight hides zone banners on a flight path. The zone at takeoff is kept, so landing somewhere else still
+-- shows the banner for where you land.
+local flight = nil
+local LANDING_DELAY = 0.5 -- UnitOnTaxi can still be true when control comes back
+
+function addon.Presence.Zone_OnControlLost()
+    -- the taxi starts just after control is lost
+    C_Timer.After(LANDING_DELAY, function()
+        if not flight and UnitOnTaxi and UnitOnTaxi("player") then
+            flight = { zone = GetZoneText() or "", sub = GetSubZoneText() or "" }
+            addon.Trace("flight start zone=%s sub=%s", flight.zone, flight.sub)
+        end
+    end)
+end
+
+function addon.Presence.Zone_OnControlGained()
+    if not flight then return end
+    local from = flight
+    flight = nil
+    if not (addon.GetDB and addon.GetDB("presenceSuppressInFlight", false)) then return end
+    C_Timer.After(LANDING_DELAY, function()
+        local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
+        addon.Trace("flight landed zone=%s sub=%s", zone, sub)
+        if zone ~= from.zone then
+            ScheduleZoneNotification(true)
+        elseif sub ~= "" and sub ~= zone and sub ~= from.sub then
+            ScheduleZoneNotification(false)
+        end
+    end)
+end
+
 function addon.Presence.Zone_OnDelveDataUpdate()
     if not pendingDelveZoneTimer then return end
     if not addon.IsDelveActive or not addon.IsDelveActive() then return end

@@ -259,7 +259,8 @@ notifications:Checkbox("Hide in Arenas", Get("presenceSuppressInPvP"), Set("pres
 notifications:Checkbox("Hide in Battlegrounds", Get("presenceSuppressInBattleground"),
     Set("presenceSuppressInBattleground"), "No zone, subzone or scenario banners inside a battleground.")
 notifications:Checkbox("Hide in Flight", Get("presenceSuppressInFlight"), Set("presenceSuppressInFlight"),
-    "No zone, subzone, quest or scenario banners while you're on a flight path.")
+    "No zone, subzone, quest or scenario banners while you're on a flight path. When you land, the banner for "
+    .. "where you landed still shows.")
 
 ---------------------------------------------------------------------------
 -- Typography
