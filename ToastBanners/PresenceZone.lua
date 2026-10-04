@@ -24,7 +24,9 @@ local lastSubzoneTitleShown = nil
 local lastSubzoneTitleTime = 0
 local pendingDelveZoneTimer = nil
 local pendingDelveZoneRetryCount = 0
-local settleUntil = 0          -- GetTime() when the loading window ends
+local loading = true           -- a loading screen is up (the addon loads during the first one)
+local settleUntil = 0          -- GetTime() when the window after a loading screen ends
+local pendingFire = nil        -- the zone banner waiting to be shown
 local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
 
 -- ============================================================================
@@ -124,6 +126,7 @@ local function ScheduleZoneNotification(isNewArea)
 
     local function fireZoneNotification()
         -- events since the last banner were combined: a new zone among them makes this a zone entry banner
+        pendingFire = nil
         isNewArea = pendingNewArea
         pendingNewArea = false
         if not addon:IsModuleEnabled("presence") then return end
@@ -195,7 +198,13 @@ local function ScheduleZoneNotification(isNewArea)
         end
     end
     if addon.Presence.RequestDebounced then
-        addon.Presence.RequestDebounced("zone", math.max(ZONE_DEBOUNCE, settleUntil - GetTime()), fireZoneNotification)
+        -- during a loading screen it waits for the loading to finish (Zone_OnInit schedules it then)
+        pendingFire = fireZoneNotification
+        if loading then
+            addon.Presence.CancelDebounced("zone")
+        else
+            addon.Presence.RequestDebounced("zone", math.max(ZONE_DEBOUNCE, settleUntil - GetTime()), fireZoneNotification)
+        end
     end
 end
 
@@ -234,7 +243,24 @@ end
 -- Init (called from OnPlayerEnteringWorld)
 -- ============================================================================
 
+-- A loading screen starts: zone banners wait until it's over
+function addon.Presence.Zone_OnLoadingScreen()
+    loading = true
+    addon.Presence.CancelDebounced("zone")
+end
+
+-- Loading is over (PLAYER_ENTERING_WORLD, and again when the loading screen is gone): the zone reported while
+-- loading is shown once, after the settle window
+local function EndLoading()
+    loading = false
+    settleUntil = GetTime() + LOADING_SETTLE_TIME
+    if pendingFire then
+        addon.Presence.RequestDebounced("zone", LOADING_SETTLE_TIME, pendingFire)
+    end
+end
+addon.Presence.Zone_OnLoadingScreenEnd = EndLoading
+
 function addon.Presence.Zone_OnInit()
     lastKnownZone = GetZoneText() or nil
-    settleUntil = GetTime() + LOADING_SETTLE_TIME
+    EndLoading()
 end

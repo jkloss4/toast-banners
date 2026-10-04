@@ -229,6 +229,18 @@ TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
 TypeRow("Rare Defeated", "RARE_DEFEATED", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
     "When a rare creature nearby is defeated.")
 
+-- Blizzard banners Toast Banners has no banner for: shown or hidden as they are
+local BANNER_NOTE = "\n\nToast Banners has no banner of its own for this. Turned off, Blizzard's comes back after the "
+    .. "interface reloads (you'll be asked)."
+notifications:Header("Blizzard Banners")
+notifications:Checkbox("Hide Boss Kill Banner", Get("presenceHideBossBanner"), Set("presenceHideBossBanner"),
+    "Hides Blizzard's banner when a dungeon or raid boss is defeated, with the loot you received." .. BANNER_NOTE)
+notifications:Checkbox("Hide Bonus Objective Banner", Get("presenceHideBonusBanner"), Set("presenceHideBonusBanner"),
+    "Hides Blizzard's banner when a bonus objective is completed." .. BANNER_NOTE)
+notifications:Checkbox("Hide Objective Tracker Banner", Get("presenceHideTopBanner"), Set("presenceHideTopBanner"),
+    "Hides the banner Blizzard's objective tracker shows at the top of the screen, such as for a new scenario "
+    .. "stage." .. BANNER_NOTE)
+
 notifications:Header("Instances")
 notifications:Checkbox("Hide in Dungeons", Get("presenceSuppressInDungeon"), Set("presenceSuppressInDungeon"),
     "No zone, subzone or scenario banners inside a dungeon.")

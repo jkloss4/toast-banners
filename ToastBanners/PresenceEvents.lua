@@ -91,6 +91,8 @@ local PRESENCE_EVENTS = {
     "VIGNETTES_UPDATED",
     "PLAYER_REGEN_DISABLED",
     "PLAYER_REGEN_ENABLED",
+    "LOADING_SCREEN_ENABLED",
+    "LOADING_SCREEN_DISABLED",
 }
 
 local function OnAddonLoaded(addonName)
@@ -278,6 +280,8 @@ local eventHandlers = {
     QUEST_LOG_UPDATE         = function() if addon.Presence.Quest_OnQuestLogUpdate then addon.Presence.Quest_OnQuestLogUpdate() end end,
     UI_INFO_MESSAGE          = function(_, msgType, msg) if addon.Presence.Quest_OnUIInfoMessage then addon.Presence.Quest_OnUIInfoMessage(msgType, msg) end end,
     PLAYER_ENTERING_WORLD   = function() OnPlayerEnteringWorld() end,
+    LOADING_SCREEN_ENABLED   = function() if addon.Presence.Zone_OnLoadingScreen then addon.Presence.Zone_OnLoadingScreen() end end,
+    LOADING_SCREEN_DISABLED  = function() if addon.Presence.Zone_OnLoadingScreenEnd then addon.Presence.Zone_OnLoadingScreenEnd() end end,
     SCENARIO_UPDATE          = function() OnScenarioUpdate() end,
     SCENARIO_CRITERIA_UPDATE = function() OnScenarioCriteriaUpdate() end,
     SCENARIO_COMPLETED       = function() OnScenarioCompleted() end,

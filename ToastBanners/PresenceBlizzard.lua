@@ -189,11 +189,21 @@ local function ApplyBlizzardSuppression()
     -- so a type switched off returns its alert to Blizzard without disabling the module.
     if addon.Presence.ApplyAlertMuting then addon.Presence.ApplyAlertMuting() end
 
-    -- Always suppress when Presence is on (no per-type mapping)
-    KillBlizzardFrame(BossBanner)
-    KillBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
-    local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
-    if topBannerFrame then KillBlizzardFrame(topBannerFrame) end
+    -- Blizzard banners with no Toast Banners counterpart, each hidden by its own setting (Horizon Suite always hid them)
+    local otherBanners = {
+        { key = "presenceHideBossBanner",  frame = BossBanner or _G["BossBanner"] },
+        { key = "presenceHideBonusBanner", frame = ObjectiveTrackerBonusBannerFrame or _G["ObjectiveTrackerBonusBannerFrame"] },
+        { key = "presenceHideTopBanner",   frame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"] },
+    }
+    for _, banner in ipairs(otherBanners) do
+        if banner.frame then
+            if addon.GetDB(banner.key, true) then
+                KillBlizzardFrame(banner.frame)
+            else
+                RestoreBlizzardFrame(banner.frame)
+            end
+        end
+    end
 end
 
 -- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
