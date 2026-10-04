@@ -1,0 +1,20 @@
+## Interface: 120100, 16001
+## Title: Toast Banners
+## Notes: Cinematic on-screen banners for zone changes, quests, scenarios, achievements, boss emotes and level ups. From Horizon Suite's Presence module.
+## Version: 1.0.0
+## Author: Jay Kloss
+## IconTexture: Interface\Icons\INV_Scroll_03
+## SavedVariables: ToastBannersDB
+
+Core.lua
+Helpers.lua
+PresenceCore.lua
+PresenceBlizzard.lua
+PresenceScenario.lua
+PresenceQuest.lua
+PresenceZone.lua
+PresenceAchievement.lua
+PresenceEvents.lua
+PresenceErrors.lua
+SettingsKit.lua
+Options.lua
