@@ -433,10 +433,20 @@ local function getTitleGap(variant)
     return math.max(0, math.min(60, v or def))
 end
 
-local function getVariant(cfg)
+-- The type's own size, from its sz
+local function getDefaultVariant(cfg)
     if cfg.sz >= 44 then return "large" end
     if cfg.sz >= 32 then return "medium" end
     return "small"
+end
+
+local VALID_VARIANTS = { large = true, medium = true, small = true }
+
+-- The size chosen for the type on the Notifications tab (presenceSize_<TYPE>), else its own
+local function getVariant(cfg, typeName)
+    local chosen = addon.GetDB and typeName and addon.GetDB("presenceSize_" .. typeName)
+    if VALID_VARIANTS[chosen] then return chosen end
+    return getDefaultVariant(cfg)
 end
 
 local function getPrimarySz(variant)
@@ -712,7 +722,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     if pcc then
         c = { pcc[1], pcc[2], pcc[3] }
     end
-    local variant = getVariant(cfg)
+    local variant = getVariant(cfg, typeName)
     local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
     local subSz = compactLayout and mainSz or math.max(12, math.min(40, math.floor(getSecondarySz(variant))))
 
@@ -1540,3 +1550,4 @@ addon.Presence.TYPE_OPTIONS         = TYPE_OPTIONS
 addon.Presence.PreviewToast         = PreviewToast
 addon.Presence.PREVIEW_TYPE_ORDER   = PREVIEW_TYPE_ORDER
 addon.Presence.PREVIEW_TYPE_LABELS = PREVIEW_TYPE_LABELS
+addon.Presence.GetDefaultSize       = function(typeName) return TYPES[typeName] and getDefaultVariant(TYPES[typeName]) end

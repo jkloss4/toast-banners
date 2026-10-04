@@ -52,30 +52,46 @@ local general, notifications, typography = unpack(page:Tabs({ "General", "Notifi
 -- Preview: plays the real banner on screen
 ---------------------------------------------------------------------------
 local PREVIEW_TYPES = {
-    { "ZONE_CHANGE", "Zone Entry", "Large" },
-    { "SUBZONE_CHANGE", "Subzone Change", "Medium" },
-    { "QUEST_ACCEPT", "Quest Accepted", "Medium" },
-    { "WORLD_QUEST_ACCEPT", "World Quest Accepted", "Medium" },
-    { "QUEST_UPDATE", "Quest Progress", "Small" },
-    { "QUEST_COMPLETE", "Quest Complete", "Large" },
-    { "WORLD_QUEST", "World Quest Complete", "Large" },
-    { "SCENARIO_START", "Scenario Start", "Medium" },
-    { "SCENARIO_UPDATE", "Scenario Progress", "Medium" },
-    { "SCENARIO_COMPLETE", "Scenario Complete", "Large" },
-    { "ACHIEVEMENT", "Achievement Earned", "Large" },
-    { "ACHIEVEMENT_PROGRESS", "Achievement Progress", "Small" },
-    { "BOSS_EMOTE", "Boss Emote", "Large" },
-    { "LEVEL_UP", "Level Up", "Large" },
-    { "RARE_DEFEATED", "Rare Defeated", "Medium" },
+    { "ZONE_CHANGE", "Zone Entry" },
+    { "SUBZONE_CHANGE", "Subzone Change" },
+    { "QUEST_ACCEPT", "Quest Accepted" },
+    { "WORLD_QUEST_ACCEPT", "World Quest Accepted" },
+    { "QUEST_UPDATE", "Quest Progress" },
+    { "QUEST_COMPLETE", "Quest Complete" },
+    { "WORLD_QUEST", "World Quest Complete" },
+    { "SCENARIO_START", "Scenario Start" },
+    { "SCENARIO_UPDATE", "Scenario Progress" },
+    { "SCENARIO_COMPLETE", "Scenario Complete" },
+    { "ACHIEVEMENT", "Achievement Earned" },
+    { "ACHIEVEMENT_PROGRESS", "Achievement Progress" },
+    { "BOSS_EMOTE", "Boss Emote" },
+    { "LEVEL_UP", "Level Up" },
+    { "RARE_DEFEATED", "Rare Defeated" },
 }
-local previewOptions = {}
-for _, entry in ipairs(PREVIEW_TYPES) do
-    previewOptions[#previewOptions + 1] = { label = entry[2], value = entry[1], tooltip = entry[3] .. " notification." }
+-- The size each type is shown at: chosen on the Notifications tab, or the type's own
+local function GetSize(typeName)
+    local saved = GetDB("presenceSize_" .. typeName)
+    if saved == "large" or saved == "medium" or saved == "small" then return saved end
+    return addon.Presence.GetDefaultSize(typeName)
+end
+
+local function SizeName(size)
+    return size:sub(1, 1):upper() .. size:sub(2)
+end
+
+-- built when the menu opens, so each tooltip names the type's current size
+local function PreviewOptions()
+    local options = {}
+    for _, entry in ipairs(PREVIEW_TYPES) do
+        options[#options + 1] = { label = entry[2], value = entry[1],
+            tooltip = SizeName(GetSize(entry[1])) .. " notification." }
+    end
+    return options
 end
 
 local function AddPreview(list)
     list:Header("Preview")
-    list:Dropdown("Banner", previewOptions,
+    list:Dropdown("Banner", PreviewOptions,
         function() return GetDB("presencePreviewType", "ZONE_CHANGE") end,
         function(value) ToastBannersDB.presencePreviewType = value end,
         "The banner Show Preview plays.")
@@ -121,54 +137,71 @@ general:Slider("Hold Duration", 0.5, 2, 0.1, Get("presenceHoldScale"), Set("pres
 -- A notification type turned off shows Blizzard's own banner or alert instead, where Blizzard has one
 local OFF_NOTE = "\n\nOff, Blizzard's own notification is shown instead."
 
+-- Each type's row has its banner size beside it (Large, Medium or Small, set up on the Typography tab)
+local SIZE_OPTIONS = {
+    { label = "Large", value = "large", tooltip = "Fonts and spacing from Typography > Large Notifications." },
+    { label = "Medium", value = "medium", tooltip = "Fonts and spacing from Typography > Medium Notifications." },
+    { label = "Small", value = "small", tooltip = "Fonts and spacing from Typography > Small Notifications." },
+}
+
+local function TypeRow(label, typeName, get, set, tooltip, opts)
+    opts = opts or {}
+    local defaultSize = addon.Presence.GetDefaultSize(typeName)
+    opts.dropdownTooltip = "Size of " .. label:lower() .. " banners. Default: " .. SizeName(defaultSize) .. "."
+    return notifications:CheckboxDropdown(label, get, set, SIZE_OPTIONS,
+        function() return GetSize(typeName) end,
+        function(value) SetDB("presenceSize_" .. typeName, value ~= defaultSize and value or nil) end,
+        tooltip, opts)
+end
+
 notifications:Header("Zones")
-notifications:Checkbox("Zone Entry", Get("presenceZoneChange"), Set("presenceZoneChange"),
+TypeRow("Zone Entry", "ZONE_CHANGE", Get("presenceZoneChange"), Set("presenceZoneChange"),
     "When you enter a new zone." .. OFF_NOTE)
 notifications:Checkbox("Zone Name Only", Get("presenceZoneEntryNameOnly"), Set("presenceZoneEntryNameOnly"),
     "Zone entry banners show only the zone's name, without the subzone you arrive in under it.",
     { indent = true, enabled = Get("presenceZoneChange") })
 local SubzoneOn = GetWithFallback("presenceSubzoneChange", "presenceZoneChange")
-notifications:Checkbox("Subzone Changes", SubzoneOn, Set("presenceSubzoneChange"),
+TypeRow("Subzone Changes", "SUBZONE_CHANGE", SubzoneOn, Set("presenceSubzoneChange"),
     "When you move to another area within the same zone." .. OFF_NOTE)
 notifications:Checkbox("Subzone Only", Get("presenceHideZoneForSubzone"), Set("presenceHideZoneForSubzone"),
     "Subzone banners show only the subzone's name, without the zone's name under it. The zone's name still "
     .. "shows when you enter a new zone.", { indent = true, enabled = SubzoneOn })
 
 notifications:Header("Quests")
-notifications:Checkbox("Quest Accepted", GetWithFallback("presenceQuestAccept", "presenceQuestEvents"),
+TypeRow("Quest Accepted", "QUEST_ACCEPT", GetWithFallback("presenceQuestAccept", "presenceQuestEvents"),
     Set("presenceQuestAccept"), "When you accept a quest.")
-notifications:Checkbox("World Quest Accepted", GetWithFallback("presenceWorldQuestAccept", "presenceQuestEvents"),
+TypeRow("World Quest Accepted", "WORLD_QUEST_ACCEPT", GetWithFallback("presenceWorldQuestAccept", "presenceQuestEvents"),
     Set("presenceWorldQuestAccept"), "When you accept a world quest.")
 local QuestProgressOn = GetWithFallback("presenceQuestUpdate", "presenceQuestEvents")
-notifications:Checkbox("Quest Progress", QuestProgressOn, Set("presenceQuestUpdate"),
+TypeRow("Quest Progress", "QUEST_UPDATE", QuestProgressOn, Set("presenceQuestUpdate"),
     "When a quest objective updates (e.g. 7/10 Boar Pelts).")
 notifications:Checkbox("Objective Only", Get("presenceHideQuestUpdateTitle"), Set("presenceHideQuestUpdateTitle"),
     "Quest and scenario progress banners show only the objective, without the \"Quest Update\" title.",
     { indent = true, enabled = QuestProgressOn })
-notifications:Checkbox("Quest Complete", GetWithFallback("presenceQuestComplete", "presenceQuestEvents"),
+TypeRow("Quest Complete", "QUEST_COMPLETE", GetWithFallback("presenceQuestComplete", "presenceQuestEvents"),
     Set("presenceQuestComplete"), "When you complete a quest.")
-notifications:Checkbox("World Quest Complete", GetWithFallback("presenceWorldQuest", "presenceQuestEvents"),
+TypeRow("World Quest Complete", "WORLD_QUEST", GetWithFallback("presenceWorldQuest", "presenceQuestEvents"),
     Set("presenceWorldQuest"), "When you complete a world quest." .. OFF_NOTE)
 
 notifications:Header("Scenarios")
-notifications:Checkbox("Scenario Start", GetWithFallback("presenceScenarioStart", "showScenarioEvents"),
+TypeRow("Scenario Start", "SCENARIO_START", GetWithFallback("presenceScenarioStart", "showScenarioEvents"),
     Set("presenceScenarioStart"), "When you enter a scenario" .. (addon.HAS_DELVES and " or Delve." or "."))
-notifications:Checkbox("Scenario Progress", GetWithFallback("presenceScenarioUpdate", "showScenarioEvents"),
+TypeRow("Scenario Progress", "SCENARIO_UPDATE", GetWithFallback("presenceScenarioUpdate", "showScenarioEvents"),
     Set("presenceScenarioUpdate"), "When a scenario objective updates.")
-notifications:Checkbox("Scenario Complete", GetWithFallback("presenceScenarioComplete", "showScenarioEvents"),
+TypeRow("Scenario Complete", "SCENARIO_COMPLETE", GetWithFallback("presenceScenarioComplete", "showScenarioEvents"),
     Set("presenceScenarioComplete"), "When you complete a scenario" .. (addon.HAS_DELVES and " or Delve." or "."))
 
 notifications:Header("Other")
-notifications:Checkbox("Achievements", Get("presenceAchievement"), Set("presenceAchievement"),
+TypeRow("Achievements", "ACHIEVEMENT", Get("presenceAchievement"), Set("presenceAchievement"),
     "When you earn an achievement." .. OFF_NOTE)
-notifications:Checkbox("Achievement Progress", Get("presenceAchievementProgress"), Set("presenceAchievementProgress"),
+TypeRow("Achievement Progress", "ACHIEVEMENT_PROGRESS", Get("presenceAchievementProgress"), Set("presenceAchievementProgress"),
     "When an achievement's criteria update: always for tracked achievements, and for others when the game says "
     .. "which achievement it is." .. OFF_NOTE)
-notifications:Checkbox("Boss Emotes", Get("presenceBossEmote"), Set("presenceBossEmote"),
+TypeRow("Boss Emotes", "BOSS_EMOTE", Get("presenceBossEmote"), Set("presenceBossEmote"),
     "Raid and dungeon boss emotes." .. OFF_NOTE)
-notifications:Checkbox("Level Up", Get("presenceLevelUp"), Set("presenceLevelUp"),
+TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
     "When you gain a level." .. OFF_NOTE)
-notifications:Checkbox("Rare Defeated", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
+TypeRow("Rare Defeated", "RARE_DEFEATED", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
     "When a rare creature nearby is defeated.")
 
 notifications:Header("Instances")
@@ -214,22 +247,17 @@ typography:Dropdown("Subtitle Outline", OUTLINES, Get("presenceSubtitleFontOutli
 typography:Dropdown("Discovery Outline", OUTLINES, Get("presenceDiscoveryFontOutline"),
     Set("presenceDiscoveryFontOutline"), "Outline around the \"Discovered\" line's letters.")
 
-local SIZES = {
-    { "Large", "Large", "zone entry, quest and world quest complete, scenario complete, achievement earned, boss emote "
-        .. "and level up" },
-    { "Medium", "Medium", "subzone change, quest and world quest accepted, scenario start and progress, and rare "
-        .. "defeated" },
-    { "Small", "Small", "quest progress and achievement progress" },
-}
-for _, size in ipairs(SIZES) do
-    local name, key, types = size[1], size[2], size[3]
-    typography:Header(name .. " Notifications")
+-- Which banners use each size is chosen on the Notifications tab
+local SIZE_NOTE = "\n\nEach notification type's size is set beside it on the Notifications tab."
+for _, key in ipairs({ "Large", "Medium", "Small" }) do
+    local types = key:lower()
+    typography:Header(key .. " Notifications")
     typography:Slider("Main Title Size", 12, 72, 1, Get("presencePrimary" .. key .. "Sz"),
-        Set("presencePrimary" .. key .. "Sz"), nil, "Font size of the main title on " .. types .. " banners.")
+        Set("presencePrimary" .. key .. "Sz"), nil, "Font size of the main title on " .. types .. " banners." .. SIZE_NOTE)
     typography:Slider("Subtitle Size", 12, 40, 1, Get("presenceSecondary" .. key .. "Sz"),
-        Set("presenceSecondary" .. key .. "Sz"), nil, "Font size of the subtitle on " .. types .. " banners.")
+        Set("presenceSecondary" .. key .. "Sz"), nil, "Font size of the subtitle on " .. types .. " banners." .. SIZE_NOTE)
     typography:Slider("Main Title Spacing", 0, 60, 1, Get("presenceTitleGap" .. key), Set("presenceTitleGap" .. key),
-        Pixels, "Space between the main title and the divider line on " .. types .. " banners.")
+        Pixels, "Space between the main title and the divider line on " .. types .. " banners." .. SIZE_NOTE)
 end
 
 typography:Header("Discovery Line")
