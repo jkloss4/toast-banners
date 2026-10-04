@@ -777,6 +777,10 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
             end
             atlas = addon.GetQuestTypeAtlas(opts.questID, catForAtlas)
             if atlas then showIcon = true end
+        elseif questRelated and opts.previewAtlas and showIcons then
+            -- a preview has no real quest to pick the icon from, so its sample carries a typical one
+            atlas = opts.previewAtlas
+            showIcon = true
         end
         if showIcon and atlas then
             layer.questTypeIcon:SetAtlas(atlas)
@@ -1504,19 +1508,19 @@ local function getPreviewSample(typeName)
         return { title = sub, subtitle = zone }
     end
     if typeName == "QUEST_ACCEPT" then
-        return { title = L["PRESENCE_QUEST_ACCEPTED"], subtitle = L["PRESENCE_THE_FATE_OF_THE_HORDE"] }
+        return { title = L["PRESENCE_QUEST_ACCEPTED"], subtitle = L["PRESENCE_THE_FATE_OF_THE_HORDE"], opts = { previewAtlas = "QuestNormal" } }
     end
     if typeName == "WORLD_QUEST_ACCEPT" then
-        return { title = L["PRESENCE_WORLD_QUEST_ACCEPTED"], subtitle = "Azerite Mining" }
+        return { title = L["PRESENCE_WORLD_QUEST_ACCEPTED"], subtitle = "Azerite Mining", opts = { previewAtlas = "quest-recurring-available" } }
     end
     if typeName == "QUEST_UPDATE" then
-        return { title = L["PRESENCE_QUEST_UPDATE"], subtitle = "Boar Pelts: 7/10" }
+        return { title = L["PRESENCE_QUEST_UPDATE"], subtitle = "Boar Pelts: 7/10", opts = { previewAtlas = "QuestNormal" } }
     end
     if typeName == "QUEST_COMPLETE" then
-        return { title = L["PRESENCE_QUEST_COMPLETE"], subtitle = L["PRESENCE_OBJECTIVE_SECURED"] }
+        return { title = L["PRESENCE_QUEST_COMPLETE"], subtitle = L["PRESENCE_OBJECTIVE_SECURED"], opts = { previewAtlas = "QuestTurnin" } }
     end
     if typeName == "WORLD_QUEST" then
-        return { title = L["PRESENCE_WORLD_QUEST_COMPLETE"], subtitle = "Azerite Mining" }
+        return { title = L["PRESENCE_WORLD_QUEST_COMPLETE"], subtitle = "Azerite Mining", opts = { previewAtlas = "quest-recurring-available" } }
     end
     if typeName == "SCENARIO_START" then
         return { title = "Cinderbrew Meadery", subtitle = "Defend the tavern from attackers", opts = { category = "SCENARIO" } }
