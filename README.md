@@ -17,8 +17,8 @@ Suite's core they use.
   Notifications, Typography and Colors tabs, and a size (Large, Medium or Small) for each notification type.
 - **Preview on screen:** **Show Preview** plays the real banner, above the settings window. While it's showing, it
   changes with the settings you change.
-- **Colors tab:** main titles, divider lines and subtitles can each use one color instead of their type's color, and
-  every notification type can have its own main title, divider line and subtitle colors.
+- **Colors tab:** every notification type can have its own main title, divider line and subtitle colors (and
+  "Discovered" line color, for zone banners).
 - **Main title spacing:** under *Typography > Large / Medium / Small Notifications*, the space between the main title
   and the divider line.
 - Typography labels say *Main Title* and *Subtitle* (Horizon Suite: *Primary* and *Secondary*), and *colors*.

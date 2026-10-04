@@ -283,28 +283,52 @@ end, "Sets the fonts, sizes and spacing on this tab back to their defaults.")
 ---------------------------------------------------------------------------
 AddPreview(colors)
 
-colors:Header("All Notifications")
-local TitleByType = Get("presenceTitleColorByType")
-colors:Checkbox("Color Main Titles by Type", TitleByType, Set("presenceTitleColorByType"),
-    "Main titles take the color of the banner's type: gold for campaign quests, purple for world quests, green for "
-    .. "completed quests, bronze for achievements and so on.\n\nOff, every main title uses Main Title Color. Boss "
-    .. "emotes and Zone Type Colors keep their own colors.")
-colors:ColorSwatch("Main Title Color", GetColor("presenceTitleColor"), SetColor("presenceTitleColor"),
-    "Color of every main title.", { indent = true, enabled = function() return not TitleByType() end })
-local DividerMatches = Get("presenceDividerMatchesTitle")
-colors:Checkbox("Divider Lines Match Main Title", DividerMatches, Set("presenceDividerMatchesTitle"),
-    "The divider line under the main title takes the main title's color.\n\nOff, every divider line uses Divider "
-    .. "Line Color.")
-colors:ColorSwatch("Divider Line Color", GetColor("presenceDividerColor"), SetColor("presenceDividerColor"),
-    "Color of every divider line.", { indent = true, enabled = function() return not DividerMatches() end })
-local SubtitleByType = Get("presenceSubtitleColorByType")
-colors:Checkbox("Color Subtitles by Type", SubtitleByType, Set("presenceSubtitleColorByType"),
-    "Subtitles take the color of the banner's type: gold for zone banners, light gray for the rest.\n\nOff, every "
-    .. "subtitle uses Subtitle Color.")
-colors:ColorSwatch("Subtitle Color", GetColor("presenceSubtitleColor"), SetColor("presenceSubtitleColor"),
-    "Color of every subtitle.", { indent = true, enabled = function() return not SubtitleByType() end })
-colors:ColorSwatch("Discovery Line Color", GetColor("presenceDiscoveryColor"), SetColor("presenceDiscoveryColor"),
-    "Color of the \"Discovered\" line under the zone name.")
+-- Each type's own main title, divider line and subtitle colors (and "Discovered" line for zone banners)
+colors:Header("Notification Types")
+local TYPE_PARTS = {
+    { "title", "Main Title", "the main title" },
+    { "line", "Divider Line", "the divider line" },
+    { "sub", "Subtitle", "the subtitle" },
+}
+local ZONE_PARTS = {
+    TYPE_PARTS[1], TYPE_PARTS[2], TYPE_PARTS[3],
+    { "discovery", "Discovery Line", "the \"Discovered\" line" },
+}
+local PARTS_BY_TYPE = { ZONE_CHANGE = ZONE_PARTS, SUBZONE_CHANGE = ZONE_PARTS }
+
+-- The color a part has before it's customized: the type's own color (the divider line follows the main title)
+local function TypeDefaultColor(typeName, part)
+    if part == "discovery" then return addon.GetColorSetting("presenceDiscoveryColor") end
+    local title, sub = addon.Presence.GetTypeDefaultColors(typeName)
+    return part == "sub" and sub or title
+end
+
+for _, entry in ipairs(PREVIEW_TYPES) do
+    local typeName, typeLabel = entry[1], entry[2]
+    colors:Expandable(typeLabel, { key = "colors" .. typeName, expanded = false })
+    for _, part in ipairs(PARTS_BY_TYPE[typeName] or TYPE_PARTS) do
+        local partKey, partLabel, partText = part[1], part[2], part[3]
+        local onKey = "presenceTypeColorOn_" .. typeName .. "_" .. partKey
+        local colorKey = "presenceTypeColor_" .. typeName .. "_" .. partKey
+        local function GetPartColor()
+            local c = GetDB(colorKey)
+            if type(c) == "table" and type(c[1]) == "number" then return c[1], c[2], c[3] end
+            return unpack(TypeDefaultColor(typeName, partKey))
+        end
+        local tooltip = "Use your own color for " .. partText .. " of " .. typeLabel:lower() .. " banners."
+        if partKey == "title" and PARTS_BY_TYPE[typeName] then
+            tooltip = tooltip .. " It takes the place of Zone Type Colors."
+        end
+        colors:CheckboxColorSwatch(partLabel, Get(onKey), function(value)
+            -- turning it on starts from the color the swatch shows
+            if value and type(GetDB(colorKey)) ~= "table" then
+                ToastBannersDB[colorKey] = { GetPartColor() }
+            end
+            SetDB(onKey, value)
+        end, GetPartColor, function(r, g, b) SetDB(colorKey, { r, g, b }) end, tooltip, { indent = true })
+    end
+end
+colors:EndExpandable()
 
 colors:Header("Zone Type Colors")
 local ZoneTypeOn = Get("presenceZoneTypeColoring")
@@ -316,48 +340,7 @@ for _, zoneType in ipairs({ "Friendly", "Hostile", "Contested", "Sanctuary" }) d
         "Color of " .. zoneType:lower() .. " zone names.", { indent = true, enabled = ZoneTypeOn })
 end
 
--- Each type's own main title, divider line and subtitle colors, which win over everything above
-colors:Header("Notification Types")
-local TYPE_PARTS = {
-    { "title", "Main Title", "the main title" },
-    { "line", "Divider Line", "the divider line" },
-    { "sub", "Subtitle", "the subtitle" },
-}
-
--- The color a part has before it's customized: the type's own color (the divider line follows the main title)
-local function TypeDefaultColor(typeName, part)
-    local title, sub = addon.Presence.GetTypeDefaultColors(typeName)
-    return part == "sub" and sub or title
-end
-
-for _, entry in ipairs(PREVIEW_TYPES) do
-    local typeName, typeLabel = entry[1], entry[2]
-    colors:Expandable(typeLabel, { key = "colors" .. typeName, expanded = false })
-    for _, part in ipairs(TYPE_PARTS) do
-        local partKey, partLabel, partText = part[1], part[2], part[3]
-        local onKey = "presenceTypeColorOn_" .. typeName .. "_" .. partKey
-        local colorKey = "presenceTypeColor_" .. typeName .. "_" .. partKey
-        local function GetPartColor()
-            local c = GetDB(colorKey)
-            if type(c) == "table" and type(c[1]) == "number" then return c[1], c[2], c[3] end
-            return unpack(TypeDefaultColor(typeName, partKey))
-        end
-        colors:CheckboxColorSwatch(partLabel, Get(onKey), function(value)
-            -- turning it on starts from the color the swatch shows
-            if value and type(GetDB(colorKey)) ~= "table" then
-                ToastBannersDB[colorKey] = { GetPartColor() }
-            end
-            SetDB(onKey, value)
-        end, GetPartColor, function(r, g, b) SetDB(colorKey, { r, g, b }) end,
-            "Use your own color for " .. partText .. " of " .. typeLabel:lower() .. " banners, in place of the "
-            .. "colors set above.", { indent = true })
-    end
-end
-colors:EndExpandable()
-
 local COLOR_KEYS = {
-    "presenceTitleColorByType", "presenceTitleColor", "presenceDividerMatchesTitle", "presenceDividerColor",
-    "presenceSubtitleColorByType", "presenceSubtitleColor", "presenceBossEmoteColor", "presenceDiscoveryColor",
     "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested",
     "presenceZoneColorSanctuary",
 }

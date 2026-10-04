@@ -502,9 +502,8 @@ local function GetZoneTypeColor()
     return defaults[colorKey] or nil
 end
 
-local resolveTypeColors
 
--- A color chosen for one notification type on the Colors tab ("title", "line" or "sub"), or nil.
+-- A color chosen for one notification type on the Colors tab ("title", "line", "sub" or "discovery"), or nil.
 -- Saved as presenceTypeColor_<TYPE>_<part> = { r, g, b }, used while presenceTypeColorOn_<TYPE>_<part> is on.
 local function getTypeColor(typeName, part)
     if not (addon.GetDB and addon.GetDB("presenceTypeColorOn_" .. typeName .. "_" .. part, false)) then return nil end
@@ -525,25 +524,12 @@ local function getTypeDefaultColors(typeName)
     return getCategoryColor(cfg.category, { 0.9, 0.9, 0.9 }), getCategoryColor(cfg.subCategory or "DEFAULT", { 1, 1, 1 })
 end
 
--- Title and subtitle colors: by notification type, or the custom colors when "by type" is turned off. Boss emotes
--- and zone type coloring keep their own title colors.
 local function resolveColors(typeName, cfg, opts)
-    local c, sc, specific = resolveTypeColors(typeName, cfg, opts)
-    if not specific and addon.GetDB and not addon.GetDB("presenceTitleColorByType", true) then
-        c = addon.GetColorSetting("presenceTitleColor")
-    end
-    if addon.GetDB and not addon.GetDB("presenceSubtitleColorByType", true) then
-        sc = addon.GetColorSetting("presenceSubtitleColor")
-    end
-    return c, sc
-end
-
-resolveTypeColors = function(typeName, cfg, opts)
     opts = opts or {}
     if cfg.specialColor and typeName == "BOSS_EMOTE" then
         local c = (addon.GetPresenceBossEmoteColor and addon.GetPresenceBossEmoteColor()) or addon.PRESENCE_BOSS_EMOTE_COLOR or { 1, 0.2, 0.2 }
         local sc = getCategoryColor("DEFAULT", { 1, 1, 1 })
-        return c, sc, true
+        return c, sc
     end
     -- Zone-type coloring for zone/subzone changes when enabled
     if (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and addon.GetDB and addon.GetDB("presenceZoneTypeColoring", false) then
@@ -551,7 +537,7 @@ resolveTypeColors = function(typeName, cfg, opts)
         if ztc then
             local subCat = cfg.subCategory or "DEFAULT"
             local sc = getCategoryColor(subCat, { 1, 1, 1 })
-            return ztc, sc, true
+            return ztc, sc
         end
     end
     local cat = cfg.category
@@ -752,14 +738,10 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     SetSafeFont(layer.subText, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
     SetSafeFont(layer.subShadow, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
 
-    -- Each type's own colors win; the divider line takes the main title's color, or one color for all
+    -- Each type's own colors (Colors tab) win; the divider line otherwise takes the main title's color
     c = getTypeColor(typeName, "title") or c
     sc = getTypeColor(typeName, "sub") or sc
-    local lc = c
-    if addon.GetDB and not addon.GetDB("presenceDividerMatchesTitle", true) then
-        lc = addon.GetColorSetting("presenceDividerColor")
-    end
-    lc = getTypeColor(typeName, "line") or lc
+    local lc = getTypeColor(typeName, "line") or c
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
@@ -824,7 +806,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         SetSafeFont(layer.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
         layer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
         layer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
-        local dc = getDiscoveryColor()
+        local dc = getTypeColor(typeName, "discovery") or getDiscoveryColor()
         layer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
         layer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
         addon.Presence.pendingDiscovery = nil
@@ -1181,7 +1163,7 @@ local function ShowDiscoveryLine()
     if addon.GetDB and not addon.GetDB("showPresenceDiscovery", true) then return end
     curLayer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
     curLayer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
-    local dc = getDiscoveryColor()
+    local dc = (activeTypeName and getTypeColor(activeTypeName, "discovery")) or getDiscoveryColor()
     curLayer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
     curLayer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
     cachedHasDiscovery = true

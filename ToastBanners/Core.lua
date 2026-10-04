@@ -77,17 +77,11 @@ addon.DEFAULTS = {
     presenceSecondarySmallSz       = 20,
     presenceTitleGapSmall          = 37,
     presenceDiscoverySize          = 16,
-    presenceTitleColorByType       = true,
-    presenceSubtitleColorByType    = true,
-    presenceDividerMatchesTitle    = true,
     presenceZoneTypeColoring       = false,
 }
 
 -- Color settings, saved as { r, g, b }
 addon.COLOR_DEFAULTS = {
-    presenceTitleColor         = { 1, 1, 1 },
-    presenceSubtitleColor      = { 0.9, 0.9, 0.9 },
-    presenceDividerColor       = { 1, 1, 1 },
     presenceBossEmoteColor     = { 1, 0.2, 0.2 },
     presenceDiscoveryColor     = { 0.4, 1, 0.5 },
     presenceZoneColorFriendly  = { 0.1, 1.0, 0.1 },
