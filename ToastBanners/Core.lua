@@ -162,7 +162,7 @@ addon.SHADOW_A  = 0.8
 -- Title colors by type of quest or notification
 addon.QUEST_COLORS = {
     DEFAULT     = { 0.90, 0.90, 0.90 },
-    CAMPAIGN    = { 1.00, 0.82, 0.20 },
+    CAMPAIGN    = { 1.00, 0.82, 0.00 },  -- Blizzard's gold (NORMAL_FONT_COLOR)
     IMPORTANT   = { 1.00, 0.45, 0.80 },
     LEGENDARY   = { 1.00, 0.50, 0.00 },
     DUNGEON     = { 0.64, 0.21, 0.93 },
