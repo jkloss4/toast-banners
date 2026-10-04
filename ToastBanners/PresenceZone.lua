@@ -127,6 +127,7 @@ local function ScheduleZoneNotification(isNewArea)
     local function fireZoneNotification()
         -- events since the last banner were combined: a new zone among them makes this a zone entry banner
         pendingFire = nil
+        addon.Trace("zone banner fires: newArea=%s zone=%s sub=%s", tostring(pendingNewArea), tostring(GetZoneText()), tostring(GetSubZoneText()))
         isNewArea = pendingNewArea
         pendingNewArea = false
         if not addon:IsModuleEnabled("presence") then return end
@@ -213,6 +214,7 @@ end
 -- ============================================================================
 
 function addon.Presence.Zone_OnZoneChangedNewArea()
+    addon.Trace("ZONE_CHANGED_NEW_AREA zone=%s sub=%s loading=%s", tostring(GetZoneText()), tostring(GetSubZoneText()), tostring(loading))
     if addon.Presence.ReapplyZoneSuppression and C_Timer and C_Timer.After then
         C_Timer.After(0, addon.Presence.ReapplyZoneSuppression)
     end
@@ -220,6 +222,7 @@ function addon.Presence.Zone_OnZoneChangedNewArea()
 end
 
 function addon.Presence.Zone_OnZoneChanged()
+    addon.Trace("ZONE_CHANGED zone=%s sub=%s loading=%s", tostring(GetZoneText()), tostring(GetSubZoneText()), tostring(loading))
     if addon.Presence.ReapplyZoneSuppression and C_Timer and C_Timer.After then
         C_Timer.After(0, addon.Presence.ReapplyZoneSuppression)
     end
@@ -245,6 +248,7 @@ end
 
 -- A loading screen starts: zone banners wait until it's over
 function addon.Presence.Zone_OnLoadingScreen()
+    addon.Trace("loading screen start")
     loading = true
     addon.Presence.CancelDebounced("zone")
 end
@@ -252,6 +256,7 @@ end
 -- Loading is over (PLAYER_ENTERING_WORLD, and again when the loading screen is gone): the zone reported while
 -- loading is shown once, after the settle window
 local function EndLoading()
+    addon.Trace("loading end, zone banner pending=%s", tostring(pendingFire ~= nil))
     loading = false
     settleUntil = GetTime() + LOADING_SETTLE_TIME
     if pendingFire then

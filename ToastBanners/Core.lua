@@ -143,20 +143,29 @@ addon.L = {
 }
 
 ---------------------------------------------------------------------------
--- Chat output, and Horizon Suite's debug log (not included: its calls do nothing)
+-- Chat output, and Horizon Suite's debug log as a trace in chat (/toastbanners trace): what each banner does and why,
+-- with the time. Its live debug panel isn't included.
 ---------------------------------------------------------------------------
 function addon.HSPrint(msg)
     print("|cffffd200Toast Banners|r: " .. tostring(msg or ""))
 end
 
 local function Noop() end
+local function Tracing() return ToastBannersDB and ToastBannersDB.trace == true end
 addon.Log = {
-    isEnabled   = function() return false end,
-    debug       = Noop,
+    isEnabled   = Tracing,
+    debug       = function(_, msg)
+        if Tracing() then print(("|cff999999Toast Banners %.2f|r %s"):format(GetTime(), tostring(msg))) end
+    end,
     registerTag = Noop,
     enableTag   = Noop,
     createPanel = function() return { Show = Noop, Hide = Noop } end,
 }
+
+-- A trace line, built only while tracing
+function addon.Trace(fmt, ...)
+    if Tracing() then addon.Log.debug("presence", fmt:format(...)) end
+end
 
 ---------------------------------------------------------------------------
 -- The banners are Horizon Suite's "presence" module, always on while the addon is loaded

@@ -422,6 +422,11 @@ SlashCmdList["TOASTBANNERS"] = function(msg)
         end
     elseif cmd == "debug" then
         addon.Presence.DumpDebug()
+    elseif cmd == "trace" then
+        -- saved, so it also covers the next login
+        ToastBannersDB.trace = not ToastBannersDB.trace or nil
+        addon.HSPrint("Trace " .. (ToastBannersDB.trace and "on: banner steps print to chat, also after logging in."
+            or "off."))
     else
         Kit.Open(page)
     end

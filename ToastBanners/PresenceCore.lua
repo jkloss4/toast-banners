@@ -987,8 +987,13 @@ local onComplete
 -- OnUpdate: drives entrance/hold/exit phases; adjusts alpha and layout only (no colour or text).
 local MAX_FRAME_STEP = 1 / 30  -- a hitch (e.g. right after a loading screen) can't skip the animation ahead
 
+local entranceStartedAt, entranceFrames = 0, 0  -- for the trace: how long the entrance really took
+
 local function PresenceOnUpdate(_, dt)
     if anim.phase == "idle" then return end
+    if dt > MAX_FRAME_STEP * 2 and IsDebugLive() then
+        addon.Trace("frame hitch %.3fs during %s", dt, anim.phase)
+    end
     dt = math.min(dt, MAX_FRAME_STEP)
     anim.elapsed = anim.elapsed + dt
 
@@ -997,12 +1002,15 @@ local function PresenceOnUpdate(_, dt)
     end
 
     if anim.phase == "entrance" then
+        if anim.elapsed == dt then entranceStartedAt, entranceFrames = GetTime(), 0 end
+        entranceFrames = entranceFrames + 1
         if cachedEntranceDur > 0 then
             updateEntrance()
         else
             finalizeEntrance()
         end
         if anim.elapsed >= cachedEntranceDur then
+            addon.Trace("entrance done: %.2fs real time, %d frames", GetTime() - entranceStartedAt, entranceFrames)
             finalizeEntrance()
             anim.phase   = "hold"
             anim.elapsed = 0
@@ -1234,6 +1242,7 @@ local ZONE_ANIM_TYPES = { ZONE_CHANGE = true, SUBZONE_CHANGE = true }
 local function CancelZoneAnim()
     if not F then return end
     if activeTypeName and ZONE_ANIM_TYPES[activeTypeName] then
+        addon.Trace("CancelZoneAnim stops %s in phase %s at %.2fs", activeTypeName, anim.phase, anim.elapsed)
         F:SetScript("OnUpdate", nil)
         subtitleTransition = nil
         anim.phase      = "idle"
