@@ -94,7 +94,10 @@ local QUEST_ICON_SIZE = 24  -- quest-type icon in toasts; larger than Focus (16)
 local DELAY_TITLE     = 0.0
 local DELAY_DIVIDER   = 0.15
 local DELAY_SUBTITLE  = 0.30
-local DELAY_DISCOVERY = 0.45
+-- The "Discovered" line doesn't slide: it fades in where it rests, this long after the banner starts (the slide is
+-- over by then), or as soon as it arrives if that's later
+local DISCOVERY_FADE_DELAY = 1.5
+local DISCOVERY_FADE_DUR   = 0.6
 
 local TYPES = {
     LEVEL_UP       = { pri = 4, category = "COMPLETE",   subCategory = "DEFAULT", sz = 48, dur = 5.0 },
@@ -662,6 +665,8 @@ local PlayCinematic
 local cachedEntranceDur   = 0.7
 local cachedExitDur       = 0.8
 local cachedHasDiscovery  = false
+local discoveryClock      = 0      -- seconds since the banner started, for the "Discovered" fade
+local discoveryFrom       = 0      -- when the "Discovered" line arrived (0: with the banner)
 local cachedSubGap        = 10  -- px below divider; QUEST_UPDATE uses 12 for compact layout
 local cachedCompactLayout = false  -- when true, hide title/divider; show only subtitle (QUEST_UPDATE with presenceHideQuestUpdateTitle)
 
@@ -832,10 +837,13 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
     layer.subText:SetPoint("TOP", 0, DIVIDER_Y - DIVIDER_H - (subGap + 10))
-    -- the "Discovered" line hangs from the subtitle, so it follows it through the animation
+    -- the "Discovered" line is placed where it rests under the subtitle's final spot: it fades in there, without the
+    -- subtitle's slide
     local discoveryGap = addon.GetDB and tonumber(addon.GetDB("presenceDiscoveryGap", 5)) or 5
+    layer.discoveryGap = math.max(0, math.min(30, discoveryGap))
     layer.discoveryText:ClearAllPoints()
-    layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -math.max(0, math.min(30, discoveryGap)))
+    layer.discoveryText:SetPoint("TOP", 0,
+        DIVIDER_Y - DIVIDER_H - subGap - layer.subText:GetStringHeight() - layer.discoveryGap)
 
     local showDiscovery = opts.showDiscovery or (addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
@@ -908,12 +916,19 @@ local function updateEntrance()
     L.subText:SetAlpha(subAlpha)
     L.subShadow:SetAlpha(subAlpha * 0.8)
     setSubOffset(L, (1 - se) * (-10))
+end
 
-    if cachedHasDiscovery then
-        local dse = entEase(e, DELAY_DISCOVERY)
-        L.discoveryText:SetAlpha(dse)
-        L.discoveryShadow:SetAlpha(dse * 0.8)
-    end
+-- The "Discovered" line's fade, from discoveryClock: nothing until DISCOVERY_FADE_DELAY into the banner (or until it
+-- arrived, if later), then in over DISCOVERY_FADE_DUR
+local function discoveryAlpha()
+    local t = (discoveryClock - math.max(DISCOVERY_FADE_DELAY, discoveryFrom)) / DISCOVERY_FADE_DUR
+    t = math.max(0, math.min(1, t))
+    return t * t * (3 - 2 * t)
+end
+
+local function setDiscoveryAlpha(L, a)
+    L.discoveryText:SetAlpha(a)
+    L.discoveryShadow:SetAlpha(a * 0.8)
 end
 
 local function updateCrossfade()
@@ -957,8 +972,7 @@ local function updateExit()
     setSubOffset(L, e * (-10))
 
     if cachedHasDiscovery then
-        L.discoveryText:SetAlpha(inv)
-        L.discoveryShadow:SetAlpha(inv8)
+        setDiscoveryAlpha(L, discoveryAlpha() * inv)
     end
 end
 
@@ -1007,10 +1021,6 @@ local function finalizeEntrance()
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
     setSubOffset(L, 0)
-    if cachedHasDiscovery then
-        L.discoveryText:SetAlpha(1)
-        L.discoveryShadow:SetAlpha(0.8)
-    end
 end
 
 local onComplete
@@ -1029,6 +1039,11 @@ local function PresenceOnUpdate(_, dt)
 
     if subtitleTransition then
         updateSubtitleTransition(dt)
+    end
+
+    if anim.phase ~= "exit" then
+        discoveryClock = discoveryClock + dt
+        if cachedHasDiscovery then setDiscoveryAlpha(curLayer, discoveryAlpha()) end
     end
 
     if anim.phase == "entrance" then
@@ -1195,6 +1210,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     activeTitle   = title
     activeTypeName = typeName
     anim.elapsed = 0
+    discoveryClock, discoveryFrom = 0, 0
     anim.holdDur = cfg.dur * getHoldScale()
 
     -- Cache per-animation values; reset trackers so first frame always writes.
@@ -1249,11 +1265,10 @@ local function ShowDiscoveryLine()
     local dc = (activeTypeName and getTypeColor(activeTypeName, "discovery")) or getDiscoveryColor()
     curLayer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
     curLayer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
-    cachedHasDiscovery = true
-    if anim.phase == "hold" then
-        curLayer.discoveryText:SetAlpha(1)
-        curLayer.discoveryShadow:SetAlpha(0.8)
+    if not cachedHasDiscovery then
+        discoveryFrom = discoveryClock -- fades in from now if the banner is already past its fade
     end
+    cachedHasDiscovery = true
 end
 
 -- Set flag so next zone/subzone change shows "Discovered" line.
@@ -1663,6 +1678,8 @@ local function DrawPreviewWindow()
     if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
     layer.subText:ClearAllPoints()
     layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10))
+    layer.discoveryText:ClearAllPoints()
+    layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -(layer.discoveryGap or 5))
     layer.subText:SetAlpha(1)
     layer.subShadow:SetAlpha(0.8)
     local hasDiscovery = (layer.discoveryText:GetText() or "") ~= ""
