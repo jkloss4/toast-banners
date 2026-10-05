@@ -28,6 +28,7 @@ local pendingDelveZoneTimer = nil
 local pendingDelveZoneRetryCount = 0
 local loading = true           -- a loading screen is up (the addon loads during the first one)
 local settleUntil = 0          -- GetTime() when the window after a loading screen ends
+local arrivalUntil = 0         -- GetTime() until which a zone banner is for arriving without walking (spirit release)
 local pendingFire = nil        -- the zone banner waiting to be shown
 local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
 
@@ -138,13 +139,14 @@ local function ScheduleZoneNotification(isNewArea)
         zone = GetZoneText() or "Unknown Zone"
         sub = GetSubZoneText() or ""
 
-        -- Arriving through a loading screen (logging in, a hearthstone, a portal), as when landing from a flight: where
-        -- walking in shows a subzone banner (the subzone over the zone), that's the banner, not the zone entry
-        local arrived = GetTime() <= settleUntil + ARRIVAL_GRACE
+        -- Arriving through a loading screen (logging in, a hearthstone, a portal) or by releasing your spirit, as when
+        -- landing from a flight: where walking in shows a subzone banner (the subzone over the zone), that's the
+        -- banner, not the zone entry
+        local arrived = GetTime() <= math.max(settleUntil + ARRIVAL_GRACE, arrivalUntil)
         if isNewArea and arrived and sub ~= "" and sub ~= zone
             and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
             and not (addon.IsDelveActive and addon.IsDelveActive()) then
-            addon.Trace("arrived by loading screen: subzone banner for %s", sub)
+            addon.Trace("arrived without walking: subzone banner for %s", sub)
             isNewArea = false
         end
 
@@ -249,6 +251,14 @@ end
 -- shows the banner for where you land.
 local flight = nil
 local LANDING_DELAY = 0.5 -- UnitOnTaxi can still be true when control comes back
+
+-- Releasing your spirit moves you to a graveyard without a loading screen; the zone banner that follows is for
+-- arriving there, not for walking in
+local SPIRIT_ARRIVAL_WINDOW = 2
+function addon.Presence.Zone_OnSpiritRelease()
+    addon.Trace("spirit released")
+    arrivalUntil = GetTime() + SPIRIT_ARRIVAL_WINDOW
+end
 
 function addon.Presence.Zone_OnControlLost()
     -- the taxi starts just after control is lost

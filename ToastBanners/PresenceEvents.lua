@@ -92,6 +92,7 @@ local PRESENCE_EVENTS = {
     "LOADING_SCREEN_DISABLED",
     "PLAYER_CONTROL_LOST",
     "PLAYER_CONTROL_GAINED",
+    "PLAYER_ALIVE",
 }
 
 local function OnAddonLoaded(addonName)
@@ -293,6 +294,8 @@ local eventHandlers = {
     LOADING_SCREEN_DISABLED  = function() if addon.Presence.Zone_OnLoadingScreenEnd then addon.Presence.Zone_OnLoadingScreenEnd() end end,
     PLAYER_CONTROL_LOST      = function() if addon.Presence.Zone_OnControlLost then addon.Presence.Zone_OnControlLost() end end,
     PLAYER_CONTROL_GAINED    = function() if addon.Presence.Zone_OnControlGained then addon.Presence.Zone_OnControlGained() end end,
+    -- also fires on accepting a resurrection before releasing; only a ghost has released
+    PLAYER_ALIVE             = function() if UnitIsGhost("player") and addon.Presence.Zone_OnSpiritRelease then addon.Presence.Zone_OnSpiritRelease() end end,
     SCENARIO_UPDATE          = function() OnScenarioUpdate() end,
     SCENARIO_CRITERIA_UPDATE = function() OnScenarioCriteriaUpdate() end,
     SCENARIO_COMPLETED       = function() OnScenarioCompleted() end,
