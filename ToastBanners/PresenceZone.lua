@@ -14,6 +14,8 @@ local DELVE_TIER_WAIT_MAX = 2.0
 -- After a loading screen the game reports the zone several times while it finishes loading; zone events in this
 -- window are combined into one banner, shown once it ends
 local LOADING_SETTLE_TIME = 2.0
+-- A zone banner up to this long after the settle window is for arriving through the loading screen
+local ARRIVAL_GRACE = 0.5
 
 -- ============================================================================
 -- State
@@ -135,6 +137,16 @@ local function ScheduleZoneNotification(isNewArea)
 
         zone = GetZoneText() or "Unknown Zone"
         sub = GetSubZoneText() or ""
+
+        -- Arriving through a loading screen (logging in, a hearthstone, a portal), as when landing from a flight: where
+        -- walking in shows a subzone banner (the subzone over the zone), that's the banner, not the zone entry
+        local arrived = GetTime() <= settleUntil + ARRIVAL_GRACE
+        if isNewArea and arrived and sub ~= "" and sub ~= zone
+            and IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
+            and not (addon.IsDelveActive and addon.IsDelveActive()) then
+            addon.Trace("arrived by loading screen: subzone banner for %s", sub)
+            isNewArea = false
+        end
 
         if addon.Presence.CancelZoneAnim then addon.Presence.CancelZoneAnim() end
 
