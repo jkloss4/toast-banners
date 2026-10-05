@@ -55,10 +55,6 @@ local function BuildRareSnapshot()
     return out
 end
 
-local function ShouldSuppress()
-    return addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
-end
-
 -- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsPresenceTypeEnabled(key, fallbackKey, fallbackDefault)
     if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end

@@ -274,14 +274,20 @@ local function IsAnyToastEnabled()
     return false
 end
 
--- True when Presence should suppress non-essential notifications (M+ zone, instance type, or a taxi flight).
+-- Hide in Flight: every banner that's hidden in flight (zone, subzone, quest and scenario) checks this
+local function IsFlightSuppressed()
+    return addon.GetDB and addon.GetDB("presenceSuppressInFlight", false) and UnitOnTaxi and UnitOnTaxi("player") or false
+end
+
+-- True when zone, subzone and scenario banners are hidden: Hide in Flight, or the Hide option for the instance
+-- you're in (quest banners only follow Hide in Flight, through IsFlightSuppressed)
 -- @return boolean
 local function ShouldSuppressType()
     if addon.GetDB and addon.GetDB("presenceSuppressZoneInMplus", true) and addon.IsInMythicDungeon and addon.IsInMythicDungeon() then
         return true
     end
     if not addon.GetDB then return false end
-    if addon.GetDB("presenceSuppressInFlight", false) and UnitOnTaxi and UnitOnTaxi("player") then return true end
+    if IsFlightSuppressed() then return true end
     local inType = select(2, GetInstanceInfo())
     if inType == "party" and addon.GetDB("presenceSuppressInDungeon", false) then return true end
     if inType == "raid"  and addon.GetDB("presenceSuppressInRaid", false)    then return true end
@@ -1771,6 +1777,7 @@ addon.Presence.CancelDebounced      = CancelDebounced
 addon.Presence.FormatObjectiveForDisplay = FormatObjectiveForDisplay
 addon.Presence.PurgeQueuedQuestUpdates   = PurgeQueuedQuestUpdates
 addon.Presence.ShouldSuppressType   = ShouldSuppressType
+addon.Presence.IsFlightSuppressed   = IsFlightSuppressed
 addon.Presence.TYPE_OPTIONS         = TYPE_OPTIONS
 addon.Presence.PreviewToast         = PreviewToast
 addon.Presence.PREVIEW_TYPE_ORDER   = PREVIEW_TYPE_ORDER

@@ -348,7 +348,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     end
 
     if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)) then return end
-    if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
+    if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then return end
     local L = addon.L or {}
     local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and Strip(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
     if IsDNTQuest(questName) then return end
@@ -482,7 +482,7 @@ end
 -- Handle QUEST_ACCEPTED. Shows quest accept notification.
 -- @param questID number
 local function Quest_OnQuestAccepted(questID)
-    if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
+    if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then return end
     if questID and C_QuestLog and C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetInfo then
         local logIdx = C_QuestLog.GetLogIndexForQuestID(questID)
         if logIdx then
@@ -517,7 +517,7 @@ end
 -- Handle QUEST_TURNED_IN. Shows quest complete notification.
 -- @param questID number
 local function Quest_OnQuestTurnedIn(questID)
-    if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
+    if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then return end
     local L = addon.L or {}
     local opts = (questID and { questID = questID }) or {}
     local questName = "Objective"
@@ -616,7 +616,7 @@ local function Quest_OnUIInfoMessage(msgType, msg)
         RequestQuestUpdate(questID, true, "UI_INFO_MESSAGE")
     else
         if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)) then return end
-        if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
+        if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then return end
 
         local now = GetTime()
         if lastUIInfoMsg == msg and (now - lastUIInfoTime) < UI_MSG_THROTTLE then return end
