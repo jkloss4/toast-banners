@@ -40,6 +40,16 @@ local function Strip(s)
     return addon.Presence.StripMarkup and addon.Presence.StripMarkup(s) or (s or "")
 end
 
+-- A "Discovered" line waiting for this banner travels with it, so it shows on this banner even when the banner has to
+-- wait in the queue behind another (it was put on whatever banner was on screen)
+local function TakeDiscovery(opts)
+    if addon.Presence.pendingDiscovery then
+        opts.showDiscovery = true
+        addon.Presence.pendingDiscovery = nil
+    end
+    return opts
+end
+
 local function ShouldSuppress()
     return addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
@@ -86,11 +96,7 @@ local function tryFireDelveZoneNotification()
         lastSubzoneTitleShown = nil
         lastSubzoneTitleTime = 0
         local opts = { category = "DELVES", source = "ZONE_CHANGED_NEW_AREA" }
-        addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zoneText), "Tier " .. tier, opts)
-        if addon.Presence.pendingDiscovery then
-            addon.Presence.ShowDiscoveryLine()
-            addon.Presence.pendingDiscovery = nil
-        end
+        addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zoneText), "Tier " .. tier, TakeDiscovery(opts))
     else
         pendingDelveZoneRetryCount = pendingDelveZoneRetryCount + 1
         if pendingDelveZoneRetryCount * DELVE_TIER_WAIT_INTERVAL >= DELVE_TIER_WAIT_MAX then
@@ -100,11 +106,7 @@ local function tryFireDelveZoneNotification()
             lastSubzoneTitleShown = nil
             lastSubzoneTitleTime = 0
             local opts = { category = "DELVES", source = "ZONE_CHANGED_NEW_AREA" }
-            addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zoneText), "Delve", opts)
-            if addon.Presence.pendingDiscovery then
-                addon.Presence.ShowDiscoveryLine()
-                addon.Presence.pendingDiscovery = nil
-            end
+            addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zoneText), "Delve", TakeDiscovery(opts))
         else
             pendingDelveZoneTimer = C_Timer.NewTimer(DELVE_TIER_WAIT_INTERVAL, tryFireDelveZoneNotification)
         end
@@ -175,7 +177,7 @@ local function ScheduleZoneNotification(isNewArea)
             opts.source = "ZONE_CHANGED_NEW_AREA"
             lastSubzoneTitleShown = nil
             lastSubzoneTitleTime = 0
-            addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zone), Strip(displaySub), opts)
+            addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zone), Strip(displaySub), TakeDiscovery(opts))
         else
             if not IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then return end
             if sub == "" then return end
@@ -204,12 +206,7 @@ local function ScheduleZoneNotification(isNewArea)
             end
             lastSubzoneTitleShown = notifTitle
             lastSubzoneTitleTime = now
-            addon.Presence.QueueOrPlay("SUBZONE_CHANGE", notifTitle, notifSub, opts)
-        end
-
-        if addon.Presence.pendingDiscovery then
-            addon.Presence.ShowDiscoveryLine()
-            addon.Presence.pendingDiscovery = nil
+            addon.Presence.QueueOrPlay("SUBZONE_CHANGE", notifTitle, notifSub, TakeDiscovery(opts))
         end
     end
     if addon.Presence.RequestDebounced then
@@ -321,6 +318,11 @@ local function EndLoading()
     end
 end
 addon.Presence.Zone_OnLoadingScreenEnd = EndLoading
+
+-- A zone banner is on its way: a loading screen is up, or one is waiting to be shown
+function addon.Presence.ZoneBannerWaiting()
+    return loading or pendingFire ~= nil
+end
 
 function addon.Presence.Zone_OnInit()
     lastKnownZone = GetZoneText() or nil

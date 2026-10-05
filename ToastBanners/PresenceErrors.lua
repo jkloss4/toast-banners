@@ -53,23 +53,30 @@ local function OnUIErrorsAddMessage(self, msg, r, g, b)
         addon.Trace("discovered %s: banner on screen is for it=%s", tostring(area), tostring(forThisBanner))
         if addon:IsModuleEnabled("presence") and forThisBanner and phase
             and (phase == "entrance" or phase == "hold" or phase == "crossfade") then
-            addon.Presence.ShowDiscoveryLine()
-            addon.Presence.pendingDiscovery = nil
+            if addon.Presence.ShowDiscoveryLine() then addon.Presence.pendingDiscovery = nil end
         end
         if self.Clear then self:Clear() end
         if discoveryTimer then discoveryTimer:Cancel() end
         discoveryTimer = nil
         if addon.Presence.pendingDiscovery then
             -- No banner took it in time: drop it, and show Blizzard's own message so the discovery isn't missed
-            discoveryTimer = C_Timer.NewTimer(DISCOVERY_WINDOW, function()
+            local waits = 0
+            local function expire()
                 discoveryTimer = nil
                 if not addon.Presence.pendingDiscovery then return end
+                -- a zone banner still on its way (after a loading screen it waits for loading to end): keep waiting
+                if waits < 10 and addon.Presence.ZoneBannerWaiting and addon.Presence.ZoneBannerWaiting() then
+                    waits = waits + 1
+                    discoveryTimer = C_Timer.NewTimer(DISCOVERY_WINDOW, expire)
+                    return
+                end
                 addon.Presence.pendingDiscovery = nil
                 addon.Trace("discovery expired with no banner: %s", msg)
                 passThrough = true
                 self:AddMessage(msg, r, g, b)
                 passThrough = false
-            end)
+            end
+            discoveryTimer = C_Timer.NewTimer(DISCOVERY_WINDOW, expire)
         end
         return
     end

@@ -1281,9 +1281,11 @@ local function SoftUpdateSubtitle(newSub)
 end
 
 -- Show the "Discovered" line on the current layer (zone/subzone discovery).
--- @return nil
+-- @return true when it was shown
 local function ShowDiscoveryLine()
     if not curLayer then return end
+    -- only a zone or subzone banner gets the line
+    if activeTypeName ~= "ZONE_CHANGE" and activeTypeName ~= "SUBZONE_CHANGE" then return end
     if addon.GetDB and not addon.GetDB("showPresenceDiscovery", true) then return end
     curLayer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
     curLayer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
@@ -1294,6 +1296,7 @@ local function ShowDiscoveryLine()
         discoveryFrom = discoveryClock -- fades in from now if the banner is already past its fade
     end
     cachedHasDiscovery = true
+    return true
 end
 
 -- Set flag so next zone/subzone change shows "Discovered" line.
