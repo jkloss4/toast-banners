@@ -1550,8 +1550,10 @@ local function getPreviewSample(typeName)
     end
     if typeName == "SUBZONE_CHANGE" then
         local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
-        if sub == "" or sub == zone then return { title = "Goldshire", subtitle = zone ~= "" and zone or "Elwynn Forest" } end
-        return { title = sub, subtitle = zone }
+        if sub == "" or sub == zone then
+            return { title = "Goldshire", subtitle = zone ~= "" and zone or "Elwynn Forest", withDiscovery = true }
+        end
+        return { title = sub, subtitle = zone, withDiscovery = true }
     end
     if typeName == "QUEST_ACCEPT" then
         return { title = L["PRESENCE_QUEST_ACCEPTED"], subtitle = L["PRESENCE_THE_FATE_OF_THE_HORDE"], opts = { previewAtlas = "QuestNormal" } }
