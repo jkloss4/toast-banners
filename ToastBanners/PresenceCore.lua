@@ -8,7 +8,7 @@
     Design notes:
     - Colour is resolved at show time only (resolveColors, getDiscoveryColor); OnUpdate
       touches alpha and layout only, never colour or text.
-    - Presence uses fixed cinematic timings (ENTRANCE_DUR 0.7s, EXIT_DUR 0.8s) and
+    - Presence uses cinematic timings (entrance 0.7s, exit 0.8s by default; both set in the options) and
       larger type sizes by design.
     - QueueOrPlay(typeName, title, subtitle, opts): title = heading, subtitle = second
       line; opts.questID is for colour/icon only, never displayed.
@@ -886,7 +886,8 @@ end
 
 local function updateEntrance()
     local L  = curLayer
-    local e  = anim.elapsed
+    -- The element delays and ELEMENT_DUR make up the default 0.7s entrance; they're scaled to the Entrance Duration
+    local e  = (cachedEntranceDur > 0) and (anim.elapsed * ENTRANCE_DUR_DEF / cachedEntranceDur) or math.huge
     local te = entEase(e, DELAY_TITLE)
     local de = entEase(e, DELAY_DIVIDER)
     local se = entEase(e, DELAY_SUBTITLE)
@@ -934,7 +935,9 @@ local function setDiscoveryAlpha(L, a)
 end
 
 local function updateCrossfade()
-    local fadeT = math.min(anim.elapsed / CROSSFADE_DUR, 1)
+    -- the old banner is gone by the time the new one's entrance ends, however short
+    local fadeDur = math.min(CROSSFADE_DUR, cachedEntranceDur)
+    local fadeT = (fadeDur > 0) and math.min(anim.elapsed / fadeDur, 1) or 1
     local fade  = crossfadeStartAlpha * (1 - easeIn(fadeT))
     local fade8 = fade * 0.8
     oldLayer.titleText:SetAlpha(fade)
