@@ -21,7 +21,14 @@ local function ShowsDiscoveryLine()
         and (P.IsTypeEnabledForType("ZONE_CHANGE") or P.IsTypeEnabledForType("SUBZONE_CHANGE"))
 end
 
-local function OnUIErrorsAddMessage(self, msg)
+-- A "Discovered" line waiting for its banner is only kept this long: with no banner by then (a subzone with subzone
+-- banners off, or the banner already gone) it would land on a later banner for somewhere else
+local DISCOVERY_WINDOW = 3
+local discoveryTimer
+local passThrough = false
+
+local function OnUIErrorsAddMessage(self, msg, r, g, b)
+    if passThrough then return end
     local discoveredStr = L["PRESENCE_DISCOVERED"]
     if msg and msg:find(discoveredStr, 1, true) then
         if not ShowsDiscoveryLine() then return end
@@ -32,6 +39,20 @@ local function OnUIErrorsAddMessage(self, msg)
             addon.Presence.pendingDiscovery = nil
         end
         if self.Clear then self:Clear() end
+        if discoveryTimer then discoveryTimer:Cancel() end
+        discoveryTimer = nil
+        if addon.Presence.pendingDiscovery then
+            -- No banner took it in time: drop it, and show Blizzard's own message so the discovery isn't missed
+            discoveryTimer = C_Timer.NewTimer(DISCOVERY_WINDOW, function()
+                discoveryTimer = nil
+                if not addon.Presence.pendingDiscovery then return end
+                addon.Presence.pendingDiscovery = nil
+                addon.Trace("discovery expired with no banner: %s", msg)
+                passThrough = true
+                self:AddMessage(msg, r, g, b)
+                passThrough = false
+            end)
+        end
         return
     end
     if addon.Presence.IsQuestText and addon.Presence.IsQuestText(msg)
@@ -49,9 +70,9 @@ end
 local function HookUIErrorsFrame()
     if uiErrorsHooked or not UIErrorsFrame then return end
     if hooksecurefunc then
-        hooksecurefunc(UIErrorsFrame, "AddMessage", function(self, msg)
+        hooksecurefunc(UIErrorsFrame, "AddMessage", function(self, msg, r, g, b)
             if not addon:IsModuleEnabled("presence") then return end
-            OnUIErrorsAddMessage(self, msg)
+            OnUIErrorsAddMessage(self, msg, r, g, b)
         end)
         uiErrorsHooked = true
     end
