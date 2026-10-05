@@ -665,6 +665,7 @@ local anim
 local active, activeTitle, activeTypeName
 local activeOpts, activeSubtitle  -- kept so a preview can be redrawn as its settings change
 local activeArea  -- the subzone you were in when the banner on screen appeared
+local lastZoneBanner  -- the last zone or subzone banner shown, to replay it for a late discovery
 local queue, crossfadeStartAlpha
 local subtitleTransition  -- { phase = "fadeOut"|"fadeIn", elapsed = 0, newText = string }
 local PlayCinematic
@@ -939,6 +940,27 @@ end
 local function setDiscoveryAlpha(L, a)
     L.discoveryText:SetAlpha(a)
     L.discoveryShadow:SetAlpha(a * 0.8)
+end
+
+-- Blizzard's discovery message can come seconds after the banner starts (the server checks exploration every few
+-- seconds): the banner then stays up long enough for the line to fade in, show for DISCOVERY_MIN_SHOWN and fade out
+local DISCOVERY_MIN_SHOWN = 1.5
+local function keepDiscoveryShown()
+    if not cachedHasDiscovery then return end
+    local need = DISCOVERY_MIN_SHOWN
+    if cachedEntranceDur > 0 then
+        local startAt = math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom)
+        need = math.max(0, startAt - discoveryClock) + DISCOVERY_FADE_DUR + DISCOVERY_MIN_SHOWN + DISCOVERY_FADE_OUT
+    end
+    local left -- time until the exit starts
+    if anim.phase == "hold" then
+        left = anim.holdDur - anim.elapsed
+    elseif anim.phase == "entrance" or anim.phase == "crossfade" then
+        left = (cachedEntranceDur - anim.elapsed) + anim.holdDur
+    else
+        return
+    end
+    if left < need then anim.holdDur = anim.holdDur + (need - left) end
 end
 
 local function updateCrossfade()
@@ -1233,6 +1255,9 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     active        = cfg
     activeTitle   = title
     activeArea    = GetSubZoneText and GetSubZoneText() or nil -- where you were when it appeared
+    if (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and not opts.preview and not opts.replay then
+        lastZoneBanner = { typeName = typeName, title = title, subtitle = subtitle, opts = opts, area = activeArea, at = GetTime() }
+    end
     activeTypeName = typeName
     anim.elapsed = 0
     discoveryClock, discoveryFrom = 0, 0
@@ -1251,6 +1276,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     else
         anim.phase = "entrance"
     end
+    keepDiscoveryShown()
 
     if IsDebugLive() then
         local src = (opts.source and (" via %s"):format(opts.source)) or ""
@@ -1296,6 +1322,7 @@ local function ShowDiscoveryLine()
         discoveryFrom = discoveryClock -- fades in from now if the banner is already past its fade
     end
     cachedHasDiscovery = true
+    keepDiscoveryShown()
     return true
 end
 
@@ -1403,7 +1430,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
 
         if #queue < MAX_QUEUE then
             -- Exact-duplicate guard: skip if same type+title is already active
-            if activeTitle == title and activeTypeName == typeName then return end
+            if activeTitle == title and activeTypeName == typeName and not opts.replay then return end
 
             if cfg.replaceInQueue then
                 -- Replace the last same-type entry in the queue instead of appending.
@@ -1760,11 +1787,28 @@ local function RefreshPreviewWindow(typeName)
     DrawPreviewWindow()
 end
 
+-- The discovery message came after the banner for that area had started leaving or was gone: while you're still there,
+-- and it showed within REPLAY_WINDOW, it plays again with the "Discovered" line
+local REPLAY_WINDOW = 15
+local function ReplayZoneBannerFor(name)
+    local b = lastZoneBanner
+    if not b or GetTime() - b.at > REPLAY_WINDOW then return false end
+    if name ~= b.title and name ~= b.subtitle and name ~= b.area then return false end
+    if name ~= GetSubZoneText() and name ~= GetZoneText() then return false end -- you've moved on
+    local opts = {}
+    for k, v in pairs(b.opts or {}) do opts[k] = v end
+    opts.showDiscovery, opts.replay = true, true
+    addon.Trace("replaying %s for its discovery", tostring(b.title))
+    QueueOrPlay(b.typeName, b.title, b.subtitle, opts)
+    return true
+end
+
 addon.Log.registerTag("presence", "presenceDebugLive")
 
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
+addon.Presence.ReplayZoneBannerFor = ReplayZoneBannerFor
 addon.Presence.CancelZoneAnim     = CancelZoneAnim
 addon.Presence.SoftUpdateSubtitle = SoftUpdateSubtitle
 addon.Presence.ShowDiscoveryLine  = ShowDiscoveryLine

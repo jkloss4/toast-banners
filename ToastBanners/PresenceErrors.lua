@@ -55,6 +55,12 @@ local function OnUIErrorsAddMessage(self, msg, r, g, b)
             and (phase == "entrance" or phase == "hold" or phase == "crossfade") then
             if addon.Presence.ShowDiscoveryLine() then addon.Presence.pendingDiscovery = nil end
         end
+        -- too late for its banner (leaving or gone) and no new one on its way: that banner plays again with the line
+        if addon.Presence.pendingDiscovery and area and addon:IsModuleEnabled("presence")
+            and not (addon.Presence.ZoneBannerWaiting and addon.Presence.ZoneBannerWaiting())
+            and addon.Presence.ReplayZoneBannerFor and addon.Presence.ReplayZoneBannerFor(area) then
+            addon.Presence.pendingDiscovery = nil
+        end
         if self.Clear then self:Clear() end
         if discoveryTimer then discoveryTimer:Cancel() end
         discoveryTimer = nil
