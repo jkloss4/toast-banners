@@ -94,9 +94,9 @@ local QUEST_ICON_SIZE = 24  -- quest-type icon in toasts; larger than Focus (16)
 local DELAY_TITLE     = 0.0
 local DELAY_DIVIDER   = 0.15
 local DELAY_SUBTITLE  = 0.30
--- The "Discovered" line doesn't slide: it fades in where it rests, this long after the banner starts (the slide is
--- over by then), or as soon as it arrives if that's later
-local DISCOVERY_FADE_DELAY = 1.0
+-- The "Discovered" line doesn't slide: it fades in where it rests, this long after the entrance (the slide) ends, or as
+-- soon as it arrives if that's later. Without animations it shows and goes with the rest of the banner.
+local DISCOVERY_FADE_AFTER = 0.3
 local DISCOVERY_FADE_DUR   = 0.6
 local DISCOVERY_FADE_OUT   = 0.4  -- it's gone just as the rest of the banner starts its exit
 
@@ -919,10 +919,11 @@ local function updateEntrance()
     setSubOffset(L, (1 - se) * (-10))
 end
 
--- The "Discovered" line's fade, from discoveryClock: nothing until DISCOVERY_FADE_DELAY into the banner (or until it
--- arrived, if later), then in over DISCOVERY_FADE_DUR
+-- The "Discovered" line's fade, from discoveryClock: nothing until DISCOVERY_FADE_AFTER past the entrance (or until it
+-- arrived, if later), then in over DISCOVERY_FADE_DUR. Fully shown at once without animations.
 local function discoveryAlpha()
-    local t = (discoveryClock - math.max(DISCOVERY_FADE_DELAY, discoveryFrom)) / DISCOVERY_FADE_DUR
+    if cachedEntranceDur <= 0 then return 1 end
+    local t = (discoveryClock - math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom)) / DISCOVERY_FADE_DUR
     t = math.max(0, math.min(1, t))
     return t * t * (3 - 2 * t)
 end
@@ -1046,7 +1047,7 @@ local function PresenceOnUpdate(_, dt)
         discoveryClock = discoveryClock + dt
         if cachedHasDiscovery then
             local a = discoveryAlpha()
-            if anim.phase == "hold" then -- out over the end of the hold, before the exit starts
+            if anim.phase == "hold" and cachedEntranceDur > 0 then -- out over the end of the hold, before the exit
                 a = math.min(a, math.max(0, (anim.holdDur - anim.elapsed) / DISCOVERY_FADE_OUT))
             end
             setDiscoveryAlpha(curLayer, a)
