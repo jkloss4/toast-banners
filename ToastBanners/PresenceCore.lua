@@ -274,9 +274,11 @@ local function IsAnyToastEnabled()
     return false
 end
 
--- Hide in Flight: every banner that's hidden in flight (zone, subzone, quest and scenario) checks this
+-- Hide in Flight: every banner that's hidden in flight (zone, subzone, quest and scenario) checks this. Flying is a
+-- flight path, or a flying mount in the air (retail).
 local function IsFlightSuppressed()
-    return addon.GetDB and addon.GetDB("presenceSuppressInFlight", false) and UnitOnTaxi and UnitOnTaxi("player") or false
+    if not (addon.GetDB and addon.GetDB("presenceSuppressInFlight", false)) then return false end
+    return (UnitOnTaxi and UnitOnTaxi("player")) or (IsFlying and IsFlying()) or false
 end
 
 -- True when zone, subzone and scenario banners are hidden: Hide in Flight, or the Hide option for the instance

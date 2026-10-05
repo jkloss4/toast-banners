@@ -31,6 +31,7 @@ local settleUntil = 0          -- GetTime() when the window after a loading scre
 local arrivalUntil = 0         -- GetTime() until which a zone banner is for arriving without walking (spirit release)
 local pendingFire = nil        -- the zone banner waiting to be shown
 local pendingNewArea = false   -- a new-zone event is waiting to be shown (a later subzone event doesn't replace it)
+local placeZone, placeSub       -- where you were at the last zone change a banner was worked out for (shown or not)
 
 -- ============================================================================
 -- Helpers
@@ -136,10 +137,15 @@ local function ScheduleZoneNotification(isNewArea)
         isNewArea = pendingNewArea
         pendingNewArea = false
         if not addon:IsModuleEnabled("presence") then return end
-        if ShouldSuppress() then return end
+        if ShouldSuppress() then
+            -- on a flying mount nothing says when you land: start watching for it
+            if addon.Presence.Zone_OnFlyingSuppressed then addon.Presence.Zone_OnFlyingSuppressed(placeZone, placeSub) end
+            return
+        end
 
         zone = GetZoneText() or "Unknown Zone"
         sub = GetSubZoneText() or ""
+        placeZone, placeSub = zone, sub
 
         -- Arriving through a loading screen (logging in, a hearthstone, a portal) or by releasing your spirit, as when
         -- landing from a flight: where walking in shows a subzone banner (the subzone over the zone), that's the
@@ -267,10 +273,8 @@ function addon.Presence.Zone_OnControlLost()
     end)
 end
 
-function addon.Presence.Zone_OnControlGained()
-    if not flight then return end
-    local from = flight
-    flight = nil
+-- Landed (from a flight path or a flying mount): the banner for where you are, as walking in would show it
+local function Land(from)
     if not (addon.GetDB and addon.GetDB("presenceSuppressInFlight", false)) then return end
     C_Timer.After(LANDING_DELAY, function()
         local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
@@ -284,6 +288,31 @@ function addon.Presence.Zone_OnControlGained()
         elseif zone ~= from.zone then
             ScheduleZoneNotification(true)
         end
+    end)
+end
+
+function addon.Presence.Zone_OnControlGained()
+    if not flight or flight.mount then return end
+    local from = flight
+    flight = nil
+    Land(from)
+end
+
+-- A flying mount: there's no event for landing, so once a zone banner is hidden because you're flying, check until
+-- you're down. You were last at fromZone / fromSub before the hidden banner.
+local flyingWatch
+function addon.Presence.Zone_OnFlyingSuppressed(fromZone, fromSub)
+    if not (addon.GetDB and addon.GetDB("presenceSuppressInFlight", false)) then return end
+    if flight or not (IsFlying and IsFlying()) or (UnitOnTaxi and UnitOnTaxi("player")) then return end
+    flight = { zone = fromZone or "", sub = fromSub or "", mount = true }
+    addon.Trace("flying start zone=%s sub=%s", flight.zone, flight.sub)
+    flyingWatch = C_Timer.NewTicker(0.5, function()
+        if IsFlying() then return end
+        flyingWatch:Cancel()
+        flyingWatch = nil
+        local from = flight
+        flight = nil
+        if from then Land(from) end
     end)
 end
 
@@ -326,5 +355,6 @@ end
 
 function addon.Presence.Zone_OnInit()
     lastKnownZone = GetZoneText() or nil
+    placeZone, placeSub = GetZoneText() or "", GetSubZoneText() or ""
     EndLoading()
 end
