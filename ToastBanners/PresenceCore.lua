@@ -664,6 +664,7 @@ local F, layerA, layerB, curLayer, oldLayer
 local anim
 local active, activeTitle, activeTypeName
 local activeOpts, activeSubtitle  -- kept so a preview can be redrawn as its settings change
+local activeArea  -- the subzone you were in when the banner on screen appeared
 local queue, crossfadeStartAlpha
 local subtitleTransition  -- { phase = "fadeOut"|"fadeIn", elapsed = 0, newText = string }
 local PlayCinematic
@@ -1200,6 +1201,12 @@ local function Init()
     addon.Presence.anim = anim
     addon.Presence.active = function() return active end
     addon.Presence.activeTitle = function() return activeTitle end
+    -- whether the banner on screen is a zone or subzone banner for this area: naming it, or (a zone banner showing
+    -- just the zone's name) shown while you were in it
+    addon.Presence.IsZoneBannerFor = function(name)
+        if activeTypeName ~= "ZONE_CHANGE" and activeTypeName ~= "SUBZONE_CHANGE" then return false end
+        return name == activeTitle or name == activeSubtitle or name == activeArea
+    end
     addon.Presence.animPhase = function() return anim.phase end
 end
 
@@ -1225,6 +1232,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     cachedSubGap = curLayer.subGap or 10
     active        = cfg
     activeTitle   = title
+    activeArea    = GetSubZoneText and GetSubZoneText() or nil -- where you were when it appeared
     activeTypeName = typeName
     anim.elapsed = 0
     discoveryClock, discoveryFrom = 0, 0

@@ -27,6 +27,17 @@ local DISCOVERY_WINDOW = 3
 local discoveryTimer
 local passThrough = false
 
+-- The area named in Blizzard's message ("Discovered: %s", or "Discovered %s: %d experience gained"), or nil
+local function DiscoveredArea(msg)
+    for _, fmt in ipairs({ _G.ERR_ZONE_EXPLORED_XP, _G.ERR_ZONE_EXPLORED }) do
+        if type(fmt) == "string" then
+            local pattern = fmt:gsub("([%(%)%.%+%-%*%?%[%]%^%$])", "%%%1"):gsub("%%s", "(.+)"):gsub("%%d", "%%d+")
+            local name = msg:match("^" .. pattern .. "$")
+            if name then return name end
+        end
+    end
+end
+
 local function OnUIErrorsAddMessage(self, msg, r, g, b)
     if passThrough then return end
     local discoveredStr = L["PRESENCE_DISCOVERED"]
@@ -34,7 +45,14 @@ local function OnUIErrorsAddMessage(self, msg, r, g, b)
         if not ShowsDiscoveryLine() then return end
         addon.Presence.SetPendingDiscovery()
         local phase = addon.Presence.animPhase and addon.Presence.animPhase()
-        if addon:IsModuleEnabled("presence") and phase and (phase == "entrance" or phase == "hold" or phase == "crossfade") then
+        -- You discover a place as you walk in, usually while the banner for where you just were is still up, and the
+        -- new place's banner replaces it a moment later: the line goes on the banner on screen only when that banner
+        -- is for the discovered area, and otherwise waits for the new banner
+        local area = DiscoveredArea(msg)
+        local forThisBanner = not area or (addon.Presence.IsZoneBannerFor and addon.Presence.IsZoneBannerFor(area))
+        addon.Trace("discovered %s: banner on screen is for it=%s", tostring(area), tostring(forThisBanner))
+        if addon:IsModuleEnabled("presence") and forThisBanner and phase
+            and (phase == "entrance" or phase == "hold" or phase == "crossfade") then
             addon.Presence.ShowDiscoveryLine()
             addon.Presence.pendingDiscovery = nil
         end
