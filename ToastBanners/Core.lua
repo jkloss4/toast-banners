@@ -95,6 +95,7 @@ addon.DEFAULTS = {
     presenceTitleGapSmall          = 37,
     presenceSubGapSmall            = 10,
     presenceDiscoverySize          = 16,
+    presenceDiscoveryGap           = 5,
     presenceZoneTypeColoring       = false,
 }
 

@@ -832,6 +832,10 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
     layer.subText:SetPoint("TOP", 0, DIVIDER_Y - DIVIDER_H - (subGap + 10))
+    -- the "Discovered" line hangs from the subtitle, so it follows it through the animation
+    local discoveryGap = addon.GetDB and tonumber(addon.GetDB("presenceDiscoveryGap", 5)) or 5
+    layer.discoveryText:ClearAllPoints()
+    layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -math.max(0, math.min(30, discoveryGap)))
 
     local showDiscovery = opts.showDiscovery or (addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then

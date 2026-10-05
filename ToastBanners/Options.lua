@@ -304,6 +304,8 @@ end
 typography:Header("Discovery Line")
 typography:Slider("Discovery Size", 12, 40, 1, Get("presenceDiscoverySize"), Set("presenceDiscoverySize"), nil,
     "Font size of the \"Discovered\" line under the zone name.")
+typography:Slider("Discovery Spacing", 0, 30, 1, Get("presenceDiscoveryGap"), Set("presenceDiscoveryGap"), Pixels,
+    "Space between the subtitle and the \"Discovered\" line.")
 
 local TYPOGRAPHY_KEYS = {
     "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceDiscoveryFontPath",
@@ -311,7 +313,7 @@ local TYPOGRAPHY_KEYS = {
     "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presenceTitleGapLarge", "presenceSubGapLarge",
     "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presenceTitleGapMedium", "presenceSubGapMedium",
     "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceTitleGapSmall", "presenceSubGapSmall",
-    "presenceDiscoverySize",
+    "presenceDiscoverySize", "presenceDiscoveryGap",
 }
 typography:Spacer(20)
 typography:Button("Reset Typography", function()
