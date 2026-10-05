@@ -96,8 +96,9 @@ local DELAY_DIVIDER   = 0.15
 local DELAY_SUBTITLE  = 0.30
 -- The "Discovered" line doesn't slide: it fades in where it rests, this long after the banner starts (the slide is
 -- over by then), or as soon as it arrives if that's later
-local DISCOVERY_FADE_DELAY = 1.5
+local DISCOVERY_FADE_DELAY = 1.0
 local DISCOVERY_FADE_DUR   = 0.6
+local DISCOVERY_FADE_OUT   = 0.4  -- it's gone just as the rest of the banner starts its exit
 
 local TYPES = {
     LEVEL_UP       = { pri = 4, category = "COMPLETE",   subCategory = "DEFAULT", sz = 48, dur = 5.0 },
@@ -972,7 +973,7 @@ local function updateExit()
     setSubOffset(L, e * (-10))
 
     if cachedHasDiscovery then
-        setDiscoveryAlpha(L, discoveryAlpha() * inv)
+        setDiscoveryAlpha(L, 0) -- faded out by the end of the hold
     end
 end
 
@@ -1043,7 +1044,13 @@ local function PresenceOnUpdate(_, dt)
 
     if anim.phase ~= "exit" then
         discoveryClock = discoveryClock + dt
-        if cachedHasDiscovery then setDiscoveryAlpha(curLayer, discoveryAlpha()) end
+        if cachedHasDiscovery then
+            local a = discoveryAlpha()
+            if anim.phase == "hold" then -- out over the end of the hold, before the exit starts
+                a = math.min(a, math.max(0, (anim.holdDur - anim.elapsed) / DISCOVERY_FADE_OUT))
+            end
+            setDiscoveryAlpha(curLayer, a)
+        end
     end
 
     if anim.phase == "entrance" then
