@@ -297,6 +297,8 @@ for _, key in ipairs({ "Large", "Medium", "Small" }) do
         Set("presenceSecondary" .. key .. "Sz"), nil, "Font size of the subtitle on " .. types .. " banners." .. SIZE_NOTE)
     typography:Slider("Main Title Spacing", 0, 60, 1, Get("presenceTitleGap" .. key), Set("presenceTitleGap" .. key),
         Pixels, "Space between the main title and the divider line on " .. types .. " banners." .. SIZE_NOTE)
+    typography:Slider("Subtitle Spacing", 0, 40, 1, Get("presenceSubGap" .. key), Set("presenceSubGap" .. key),
+        Pixels, "Space between the divider line and the subtitle on " .. types .. " banners." .. SIZE_NOTE)
 end
 
 typography:Header("Discovery Line")
@@ -306,9 +308,9 @@ typography:Slider("Discovery Size", 12, 40, 1, Get("presenceDiscoverySize"), Set
 local TYPOGRAPHY_KEYS = {
     "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceDiscoveryFontPath",
     "presenceTitleFontOutline", "presenceSubtitleFontOutline", "presenceDiscoveryFontOutline",
-    "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presenceTitleGapLarge",
-    "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presenceTitleGapMedium",
-    "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceTitleGapSmall",
+    "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presenceTitleGapLarge", "presenceSubGapLarge",
+    "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presenceTitleGapMedium", "presenceSubGapMedium",
+    "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceTitleGapSmall", "presenceSubGapSmall",
     "presenceDiscoverySize",
 }
 typography:Spacer(20)

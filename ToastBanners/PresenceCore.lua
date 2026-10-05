@@ -445,6 +445,15 @@ local function getTitleGap(variant)
     return math.max(0, math.min(60, v or def))
 end
 
+-- Gap in px between the divider line and the subtitle, per variant
+local SUB_GAP_DEFAULT = 10
+local SUB_GAP_KEYS = { large = "presenceSubGapLarge", medium = "presenceSubGapMedium", small = "presenceSubGapSmall" }
+
+local function getSubGap(variant)
+    local v = addon.GetDB and tonumber(addon.GetDB(SUB_GAP_KEYS[variant], SUB_GAP_DEFAULT))
+    return math.max(0, math.min(40, v or SUB_GAP_DEFAULT))
+end
+
 -- The type's own size, from its sz
 local function getDefaultVariant(cfg)
     if cfg.sz >= 44 then return "large" end
@@ -810,7 +819,9 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         end
     end
 
-    local subGap = (cfg.subGap) or 10
+    -- the type's own extra space (quest and achievement progress have 2px more) on top of the size's Subtitle Spacing
+    local subGap = getSubGap(variant) + ((cfg.subGap or 10) - 10)
+    layer.subGap = subGap
     -- The title sits titleGap above the divider line and the subtitle subGap below it; the entrance animation starts
     -- the title 20px higher and the subtitle 10px lower. Both are placed on the banner rather than on the line: the
     -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
@@ -1175,7 +1186,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     if opts.preview then HideSettingsForPreview() else RestoreSettings() end
     activeOpts, activeSubtitle = opts, subtitle
 
-    cachedSubGap = (cfg.subGap) or 10
+    cachedSubGap = curLayer.subGap or 10
     active        = cfg
     activeTitle   = title
     activeTypeName = typeName
@@ -1475,7 +1486,7 @@ local function RefreshPreview()
     if cachedHasDiscovery then addon.Presence.pendingDiscovery = true end
     ApplyToastContentToLayer(curLayer, activeTypeName, activeTitle, activeSubtitle, activeOpts)
     resetLayer(oldLayer)
-    cachedSubGap        = active.subGap or 10
+    cachedSubGap        = curLayer.subGap or 10
     cachedCompactLayout = (activeTypeName == "QUEST_UPDATE" or activeTypeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
     cachedHasDiscovery  = (curLayer.discoveryText:GetText() or "") ~= ""
     lastTitleOffsetY, lastSubOffsetY, lastDividerWidth = nil, nil, nil
@@ -1645,7 +1656,7 @@ local function DrawPreviewWindow()
     layer.titleShadow:SetAlpha(compact and 0 or 0.8)
     if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
     layer.subText:ClearAllPoints()
-    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(cfg.subGap or 10))
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10))
     layer.subText:SetAlpha(1)
     layer.subShadow:SetAlpha(0.8)
     local hasDiscovery = (layer.discoveryText:GetText() or "") ~= ""
