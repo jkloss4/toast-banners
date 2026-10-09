@@ -709,6 +709,12 @@ end
 
 local F, layerA, layerB, curLayer, oldLayer
 
+-- General > Display > Divider Width: how wide the divider is once it's grown in
+local function getDividerWidth()
+    local v = addon.GetDB and tonumber(addon.GetDB("presenceDividerWidth", DIVIDER_W)) or DIVIDER_W
+    return math.max(100, math.min(800, v))
+end
+
 local function setDividerSize(L, w)
     L.divider:SetSize(w, L.dividerH or DIVIDER_H)
     L.fadeL:SetSize(math.max(w / 2, 0.01), L.dividerH or DIVIDER_H)
@@ -845,17 +851,11 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    -- Divider Style: Blizzard's settings divider (fading toward each end) or a solid line, tinted to the line color;
-    -- or the gold bar from Blizzard's level up toast, in its own gold (a tint muddies it)
-    local style = addon.GetDB("presenceDividerStyle", "faded")
-    local bar = style == "levelup" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("levelup-bar-gold")
+    -- Divider Style: a solid line, or Blizzard's settings divider (fading toward each end), tinted to the line color
+    local style = addon.GetDB("presenceDividerStyle", "faded") == "solid" and "solid" or "faded"
     -- General > Display > Divider Thickness, in any style
     layer.dividerH = math.max(1, math.min(16, tonumber(addon.GetDB("presenceDividerThickness", DIVIDER_H)) or DIVIDER_H))
-    if bar then
-        layer.divider:SetAtlas("levelup-bar-gold")
-    else
-        layer.divider:SetColorTexture(1, 1, 1, 1)
-    end
+    layer.divider:SetColorTexture(1, 1, 1, 1)
     local atlas = style == "faded" and C_Texture and C_Texture.GetAtlasInfo
         and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
     layer.dividerFaded = atlas and (atlas.file or atlas.filename) and true or false
@@ -870,7 +870,6 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     for _, part in ipairs({ layer.divider, layer.fadeL, layer.fadeR }) do
         part:SetVertexColor(lc[1], lc[2], lc[3])
     end
-    if bar then layer.divider:SetVertexColor(1, 1, 1) end
 
     if compactLayout then
         layer.titleText:SetText("")
@@ -1093,7 +1092,7 @@ local function updateEntrance()
     end
 
     setDividerAlpha(L, de)
-    setDividerWidth(L, DIVIDER_W * de)
+    setDividerWidth(L, getDividerWidth() * de)
 
     local subAlpha = se
     if subtitleTransition then
@@ -1200,7 +1199,7 @@ local function updateExit()
 
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
     setDividerAlpha(L, inv)
-    setDividerWidth(L, DIVIDER_W * inv)
+    setDividerWidth(L, getDividerWidth() * inv)
 
     L.subText:SetAlpha(inv)
     L.subShadow:SetAlpha(inv8)
@@ -1252,7 +1251,7 @@ local function finalizeEntrance()
     end
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
     setDividerAlpha(L, 1)
-    setDividerWidth(L, DIVIDER_W)
+    setDividerWidth(L, getDividerWidth())
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
     setSubOffset(L, 0)
@@ -1962,7 +1961,7 @@ local function DrawPreviewWindow()
     layer.divider:ClearAllPoints()
     local extra = ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2 -- a taller divider, centered on the line
     layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y + extra)
-    setDividerSize(layer, DIVIDER_W)
+    setDividerSize(layer, getDividerWidth())
     setDividerAlpha(layer, 1)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, (layer.titleGap or 0) - extra)

@@ -143,19 +143,19 @@ general:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("prese
     "Size of the quest type icon. It's never larger than the text beside it.",
     { indent = true, enabled = Get("showPresenceQuestTypeIcons") })
 general:Dropdown("Divider Style", {
+    { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
     { label = "Faded Ends", value = "faded",
       tooltip = "The divider Blizzard's settings use under a page title, fading toward each end." },
-    { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
-    { label = "Level Up Bar", value = "levelup",
-      tooltip = "The gold bar from Blizzard's own level up toast. It keeps its own gold: the divider line color doesn't "
-        .. "apply." },
-}, Get("presenceDividerStyle"), Set("presenceDividerStyle"),
+}, function() return GetDB("presenceDividerStyle", "faded") == "solid" and "solid" or "faded" end,
+    Set("presenceDividerStyle"),
     "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")
 general:Slider("Divider Opacity", 0.1, 1, 0.05, Get("presenceDividerOpacity"), Set("presenceDividerOpacity"), Percent,
     "How opaque the divider is, in any style.", { indent = true })
 general:Slider("Divider Thickness", 1, 16, 1, Get("presenceDividerThickness"), Set("presenceDividerThickness"), Pixels,
     "How thick the divider is, in any style. It stays centered where it is, so the title and subtitle don't move.",
     { indent = true })
+general:Slider("Divider Width", 100, 800, 10, Get("presenceDividerWidth"), Set("presenceDividerWidth"), Pixels,
+    "How wide the divider is once it's grown in. It stays centered.", { indent = true })
 general:Slider("Vertical Position", -300, 0, 1, Get("presenceFrameY"), Set("presenceFrameY"), nil,
     "How far down from the top of the screen the banners are shown.")
 general:Slider("Scale", 0.5, 2, 0.1, Get("presenceFrameScale"), Set("presenceFrameScale"), Multiplier,
