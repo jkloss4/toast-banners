@@ -136,12 +136,6 @@ AddPreview(page)
 ---------------------------------------------------------------------------
 
 general:Header("Display")
-general:Checkbox("Quest Type Icons", Get("showPresenceQuestTypeIcons"), Set("showPresenceQuestTypeIcons"),
-    "Shows the quest's type icon (campaign, daily, world quest...) next to quest accepted, complete and progress "
-    .. "banners.")
-general:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("presenceIconSize"), Pixels,
-    "Size of the quest type icon. It's never larger than the text beside it.",
-    { indent = true, enabled = Get("showPresenceQuestTypeIcons") })
 general:Dropdown("Divider Style", {
     { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
     { label = "Faded Ends", value = "faded",
@@ -233,6 +227,12 @@ TypeRow("World Quest Complete", "WORLD_QUEST", GetWithFallback("presenceWorldQue
     Set("presenceWorldQuest"), "When you complete a world quest." .. OFF_NOTE)
 TypeRow("Bonus Objective Complete", "BONUS_OBJECTIVE", GetWithFallback("presenceBonusComplete", "presenceQuestEvents"),
     Set("presenceBonusComplete"), "When you complete a bonus objective." .. OFF_NOTE)
+notifications:Checkbox("Quest Type Icons", Get("showPresenceQuestTypeIcons"), Set("showPresenceQuestTypeIcons"),
+    "Shows the quest's type icon (campaign, daily, world quest...) next to quest accepted, complete and progress "
+    .. "banners.")
+notifications:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("presenceIconSize"), Pixels,
+    "Size of the quest type icon. It's never larger than the text beside it.",
+    { indent = true, enabled = Get("showPresenceQuestTypeIcons") })
 
 notifications:Header("Scenarios")
 TypeRow("Scenario Start", "SCENARIO_START", GetWithFallback("presenceScenarioStart", "showScenarioEvents"),
