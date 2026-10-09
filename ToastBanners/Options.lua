@@ -290,6 +290,15 @@ notifications:Checkbox("Hide in Battlegrounds", Get("presenceSuppressInBattlegro
 notifications:Checkbox("Hide in Flight", Get("presenceSuppressInFlight"), Set("presenceSuppressInFlight"),
     "No zone, subzone, quest or scenario banners while you're flying: on a flight path, or in the air on a flying "
     .. "mount. When you land, the banner for where you landed still shows.")
+notifications:Checkbox("Show Discoveries", Get("presenceFlightDiscoveries"), Set("presenceFlightDiscoveries"),
+    "In flight, zone and subzone banners for areas you discover for the first time still show, with the "
+    .. "\"Discovered\" line.", {
+        indent = true,
+        enabled = function() return Get("presenceSuppressInFlight")() and Get("showPresenceDiscovery")() end,
+        disabledTooltip = function()
+            return Get("presenceSuppressInFlight")() and "Needs Discovered Line, under Zones." or nil
+        end,
+    })
 
 ---------------------------------------------------------------------------
 -- Typography

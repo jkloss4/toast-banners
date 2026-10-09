@@ -73,6 +73,7 @@ addon.DEFAULTS = {
     presenceSuppressInPvP          = false,
     presenceSuppressInBattleground = false,
     presenceSuppressInFlight       = false,
+    presenceFlightDiscoveries      = false,
     presenceLevelUp                = true,
     presenceLevelUpStats           = true,
     presenceLevelUpTalents         = true,

@@ -55,6 +55,29 @@ local function ShouldSuppress()
     return addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
 
+-- Hide in Flight → Show Discoveries: a zone banner hidden only because you're flying is held for a moment instead of
+-- dropped, and shows if the area turns out to be newly discovered. The "Discovered" message can come before the zone
+-- change (the banner then takes it as it's worked out) or just after (PlayHeldZoneBanner).
+local HELD_WINDOW = 5
+local heldBanner = nil
+
+local function ShowsDiscoveriesInFlight()
+    return addon.GetDB and addon.GetDB("presenceFlightDiscoveries", false) and addon.GetDB("showPresenceDiscovery", true)
+        and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed()
+        and not addon.Presence.ShouldSuppressType(true)
+end
+
+function addon.Presence.PlayHeldZoneBanner(name)
+    local b = heldBanner
+    if not b or GetTime() - b.at > HELD_WINDOW then return false end
+    if name ~= b.title and name ~= b.subtitle and name ~= b.area then return false end
+    heldBanner = nil
+    b.opts.showDiscovery = true
+    addon.Trace("discovered in flight: showing held banner %s", tostring(b.title))
+    addon.Presence.QueueOrPlay(b.typeName, b.title, b.subtitle, b.opts)
+    return true
+end
+
 -- Not `a and f() or default`: that returns the default whenever the option is off.
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
     if not addon.Presence.IsTypeEnabled then return fallbackDefault end
@@ -137,10 +160,24 @@ local function ScheduleZoneNotification(isNewArea)
         isNewArea = pendingNewArea
         pendingNewArea = false
         if not addon:IsModuleEnabled("presence") then return end
+        local holdUnlessDiscovered = false
         if ShouldSuppress() then
             -- on a flying mount nothing says when you land: start watching for it
             if addon.Presence.Zone_OnFlyingSuppressed then addon.Presence.Zone_OnFlyingSuppressed(placeZone, placeSub) end
-            return
+            if not ShowsDiscoveriesInFlight() then return end
+            holdUnlessDiscovered = true
+        end
+        heldBanner = nil
+
+        -- shown, or in flight held until its discovery
+        local function Show(typeName, title, subtitle, opts)
+            if holdUnlessDiscovered and not opts.showDiscovery then
+                heldBanner = { typeName = typeName, title = title, subtitle = subtitle, opts = opts,
+                    area = GetSubZoneText and GetSubZoneText() or nil, at = GetTime() }
+                addon.Trace("in flight: holding %s in case it's discovered", tostring(title))
+                return
+            end
+            addon.Presence.QueueOrPlay(typeName, title, subtitle, opts)
         end
 
         zone = GetZoneText() or "Unknown Zone"
@@ -183,7 +220,7 @@ local function ScheduleZoneNotification(isNewArea)
             opts.source = "ZONE_CHANGED_NEW_AREA"
             lastSubzoneTitleShown = nil
             lastSubzoneTitleTime = 0
-            addon.Presence.QueueOrPlay("ZONE_CHANGE", Strip(zone), Strip(displaySub), TakeDiscovery(opts))
+            Show("ZONE_CHANGE", Strip(zone), Strip(displaySub), TakeDiscovery(opts))
         else
             if not IsTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true) then return end
             if sub == "" then return end
@@ -212,7 +249,7 @@ local function ScheduleZoneNotification(isNewArea)
             end
             lastSubzoneTitleShown = notifTitle
             lastSubzoneTitleTime = now
-            addon.Presence.QueueOrPlay("SUBZONE_CHANGE", notifTitle, notifSub, TakeDiscovery(opts))
+            Show("SUBZONE_CHANGE", notifTitle, notifSub, TakeDiscovery(opts))
         end
     end
     if addon.Presence.RequestDebounced then

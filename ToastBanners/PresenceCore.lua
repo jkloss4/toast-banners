@@ -289,13 +289,14 @@ end
 
 -- True when zone, subzone and scenario banners are hidden: Hide in Flight, or the Hide option for the instance
 -- you're in (quest banners only follow Hide in Flight, through IsFlightSuppressed)
+-- @param ignoreFlight boolean Leave Hide in Flight out (whether anything else hides them)
 -- @return boolean
-local function ShouldSuppressType()
+local function ShouldSuppressType(ignoreFlight)
     if addon.GetDB and addon.GetDB("presenceSuppressZoneInMplus", true) and addon.IsInMythicDungeon and addon.IsInMythicDungeon() then
         return true
     end
     if not addon.GetDB then return false end
-    if IsFlightSuppressed() then return true end
+    if not ignoreFlight and IsFlightSuppressed() then return true end
     local inType = select(2, GetInstanceInfo())
     if inType == "party" and addon.GetDB("presenceSuppressInDungeon", false) then return true end
     if inType == "raid"  and addon.GetDB("presenceSuppressInRaid", false)    then return true end

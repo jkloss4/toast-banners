@@ -61,6 +61,11 @@ local function OnUIErrorsAddMessage(self, msg, r, g, b)
             and addon.Presence.ReplayZoneBannerFor and addon.Presence.ReplayZoneBannerFor(area) then
             addon.Presence.pendingDiscovery = nil
         end
+        -- in flight, with Show Discoveries on: the banner hidden for it is shown after all
+        if addon.Presence.pendingDiscovery and area and addon:IsModuleEnabled("presence")
+            and addon.Presence.PlayHeldZoneBanner and addon.Presence.PlayHeldZoneBanner(area) then
+            addon.Presence.pendingDiscovery = nil
+        end
         if self.Clear then self:Clear() end
         if discoveryTimer then discoveryTimer:Cancel() end
         discoveryTimer = nil
