@@ -666,6 +666,10 @@ local function CreateLayer(parent)
     L.spellsLine = L.details:CreateFontString(nil, "OVERLAY")
     L.spellsLine:SetJustifyH("CENTER")
     L.spellsLine:SetWidth(FRAME_WIDTH - 120)
+    -- a font from the start: they're cleared on every banner, and a font string can't take text without one
+    for _, fs in ipairs({ L.statsLeft, L.statsRight, L.talentLine, L.spellsLine }) do
+        SetSafeFont(fs, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
+    end
 
     LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
     LockDirectFont(L.titleText,       GetPresenceTitleFont)
