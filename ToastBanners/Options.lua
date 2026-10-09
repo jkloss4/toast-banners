@@ -321,6 +321,16 @@ typography:Slider("Discovery Size", 12, 40, 1, Get("presenceDiscoverySize"), Set
 typography:Slider("Discovery Spacing", 0, 30, 1, Get("presenceDiscoveryGap"), Set("presenceDiscoveryGap"), Pixels,
     "Space between the subtitle and the \"Discovered\" line.")
 
+typography:Header("Level Up")
+typography:Slider("Stat Size", 10, 32, 1, Get("presenceLevelUpStatSize"), Set("presenceLevelUpStatSize"), nil,
+    "Font size of the stat increases (Health: 448 +9).")
+typography:Slider("Talent/Skill Size", 10, 32, 1, Get("presenceLevelUpLineSize"), Set("presenceLevelUpLineSize"), nil,
+    "Font size of the talent point and new trainer spells lines.")
+typography:Slider("Stat Block Spacing", 0, 40, 1, Get("presenceLevelUpStatGap"), Set("presenceLevelUpStatGap"), Pixels,
+    "Space between the bottom of the subtitle and the stat increases.")
+typography:Slider("Talent/Skill Spacing", 0, 40, 1, Get("presenceLevelUpLineGap"), Set("presenceLevelUpLineGap"), Pixels,
+    "Space between the end of the stat increases and the talent point and new trainer spells lines.")
+
 local TYPOGRAPHY_KEYS = {
     "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceDiscoveryFontPath",
     "presenceTitleFontOutline", "presenceSubtitleFontOutline", "presenceDiscoveryFontOutline",
@@ -328,6 +338,7 @@ local TYPOGRAPHY_KEYS = {
     "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presenceTitleGapMedium", "presenceSubGapMedium",
     "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceTitleGapSmall", "presenceSubGapSmall",
     "presenceDiscoverySize", "presenceDiscoveryGap",
+    "presenceLevelUpStatSize", "presenceLevelUpLineSize", "presenceLevelUpStatGap", "presenceLevelUpLineGap",
 }
 typography:Spacer(20)
 typography:Button("Reset Typography", function()

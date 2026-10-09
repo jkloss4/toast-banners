@@ -466,6 +466,12 @@ end
 local SUB_GAP_DEFAULT = 10
 local SUB_GAP_KEYS = { large = "presenceSubGapLarge", medium = "presenceSubGapMedium", small = "presenceSubGapSmall" }
 
+-- A level up typography setting (Typography > Level Up), kept in range
+local function levelUpSetting(key, default, lo, hi)
+    local v = addon.GetDB and tonumber(addon.GetDB(key, default)) or default
+    return math.max(lo, math.min(hi, v))
+end
+
 local function getSubGap(variant)
     local v = addon.GetDB and tonumber(addon.GetDB(SUB_GAP_KEYS[variant], SUB_GAP_DEFAULT))
     return math.max(0, math.min(40, v or SUB_GAP_DEFAULT))
@@ -911,10 +917,14 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         fs:SetAlpha(0)
     end
     if details then
-        local path, size, outline = getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline()
+        local path, outline = getPresenceDiscoveryFontPath(), getPresenceDiscoveryFontOutline()
+        -- Typography > Level Up: one size for the stat rows, another for the talent and spells lines
+        local statSize = levelUpSetting("presenceLevelUpStatSize", 16, 10, 32)
+        local lineSize = levelUpSetting("presenceLevelUpLineSize", 16, 10, 32)
         local r, g, b = layer.subText:GetTextColor()
         for _, fs in ipairs(layer.detailLines) do
-            SetSafeFont(fs, path, size, outline)
+            local isLine = fs == layer.talentLine or fs == layer.spellsLine
+            SetSafeFont(fs, path, isLine and lineSize or statSize, outline)
             fs:SetTextColor(r, g, b, 1)
         end
         -- each part in its own color (Colors > Level Up): the increases green, the rest the subtitle's, until set
@@ -955,7 +965,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
             layer.detailRows[#layer.detailRows + 1] = { l, rt }
             y = y + math.max(l:GetStringHeight(), rt:GetStringHeight()) + 4
         end
-        if rows > 0 then y = y + 4 end
+        if rows > 0 then y = y - 4 + levelUpSetting("presenceLevelUpLineGap", 8, 0, 40) end -- Talent/Skill Spacing
 
         if details.talents and details.talents > 0 then
             layer.talentLine:SetText(paint("talentCount", details.talents) .. " " .. paint("talentText",
@@ -978,7 +988,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         layer.details:SetAlpha(layer.hasDetails and 1 or 0) -- the rows fade themselves
 
         -- under the subtitle's final spot (and the "Discovered" line, if there is one), without the slide
-        local below = DIVIDER_Y - DIVIDER_H - subGap - layer.subText:GetStringHeight() - 10
+        layer.levelUpGap = levelUpSetting("presenceLevelUpStatGap", 10, 0, 40) -- Stat Block Spacing
+        local below = DIVIDER_Y - DIVIDER_H - subGap - layer.subText:GetStringHeight() - layer.levelUpGap
         if (layer.discoveryText:GetText() or "") ~= "" then
             below = below - layer.discoveryGap - layer.discoveryText:GetStringHeight()
         end
@@ -1918,7 +1929,7 @@ local function DrawPreviewWindow()
     layer.discoveryShadow:SetAlpha(hasDiscovery and 0.8 or 0)
     -- the level up details under the subtitle, or under the "Discovered" line when there is one
     layer.details:ClearAllPoints()
-    layer.details:SetPoint("TOP", hasDiscovery and layer.discoveryText or layer.subText, "BOTTOM", 0, -10)
+    layer.details:SetPoint("TOP", hasDiscovery and layer.discoveryText or layer.subText, "BOTTOM", 0, -(layer.levelUpGap or 10))
     layer.details:SetAlpha(layer.hasDetails and 1 or 0)
     for _, lines in ipairs(layer.detailRows) do
         for _, fs in ipairs(lines) do fs:SetAlpha(1) end
