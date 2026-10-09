@@ -141,6 +141,12 @@ general:Checkbox("Quest Type Icons", Get("showPresenceQuestTypeIcons"), Set("sho
 general:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("presenceIconSize"), Pixels,
     "Size of the quest type icon. It's never larger than the text beside it.",
     { indent = true, enabled = Get("showPresenceQuestTypeIcons") })
+general:Dropdown("Divider Style", {
+    { label = "Faded Ends", value = "faded",
+      tooltip = "The divider Blizzard's settings use under a page title: fading and narrowing toward each end." },
+    { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
+}, Get("presenceDividerStyle"), Set("presenceDividerStyle"),
+    "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")
 general:Slider("Vertical Position", -300, 0, 1, Get("presenceFrameY"), Set("presenceFrameY"), nil,
     "How far down from the top of the screen the banners are shown.")
 general:Slider("Scale", 0.5, 2, 0.1, Get("presenceFrameScale"), Set("presenceFrameScale"), Multiplier,

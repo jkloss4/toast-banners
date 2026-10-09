@@ -55,6 +55,7 @@ addon.DEFAULTS = {
     showPresenceDiscovery          = true,
     presenceFrameY                 = -180,
     presenceFrameScale             = 1,
+    presenceDividerStyle           = "faded",
     presenceAnimations             = true,
     presenceEntranceDur            = 0.7,
     presenceExitDur                = 0.8,

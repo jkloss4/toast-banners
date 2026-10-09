@@ -821,6 +821,14 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
+    -- Divider Style: Blizzard's settings divider (faded, pinched ends) or a solid line, tinted to the line color
+    local faded = addon.GetDB("presenceDividerStyle", "faded") == "faded"
+        and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
+    if faded then
+        layer.divider:SetAtlas("Options_HorizontalDivider")
+    else
+        layer.divider:SetColorTexture(1, 1, 1, 1)
+    end
     layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
 
     if compactLayout then
