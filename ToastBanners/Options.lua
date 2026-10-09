@@ -141,8 +141,6 @@ general:Checkbox("Quest Type Icons", Get("showPresenceQuestTypeIcons"), Set("sho
 general:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("presenceIconSize"), Pixels,
     "Size of the quest type icon. It's never larger than the text beside it.",
     { indent = true, enabled = Get("showPresenceQuestTypeIcons") })
-general:Checkbox("Discovered Line", Get("showPresenceDiscovery"), Set("showPresenceDiscovery"),
-    "Shows \"Discovered\" under the zone name when you discover a new area.")
 general:Slider("Vertical Position", -300, 0, 1, Get("presenceFrameY"), Set("presenceFrameY"), nil,
     "How far down from the top of the screen the banners are shown.")
 general:Slider("Scale", 0.5, 2, 0.1, Get("presenceFrameScale"), Set("presenceFrameScale"), Multiplier,
@@ -197,6 +195,9 @@ TypeRow("Subzone Changes", "SUBZONE_CHANGE", SubzoneOn, Set("presenceSubzoneChan
 notifications:Checkbox("Subzone Only", Get("presenceHideZoneForSubzone"), Set("presenceHideZoneForSubzone"),
     "Subzone banners show only the subzone's name, without the zone's name under it. The zone's name still "
     .. "shows when you enter a new zone.", { indent = true, enabled = SubzoneOn })
+notifications:Checkbox("Discovered Line", Get("showPresenceDiscovery"), Set("showPresenceDiscovery"),
+    "Shows \"Discovered\" under the zone or subzone name when you discover a new area.",
+    { enabled = function() return Get("presenceZoneChange")() or SubzoneOn() end })
 
 notifications:Header("Quests")
 TypeRow("Quest Accepted", "QUEST_ACCEPT", GetWithFallback("presenceQuestAccept", "presenceQuestEvents"),
@@ -349,11 +350,36 @@ local ZONE_PARTS = {
     TYPE_PARTS[1], TYPE_PARTS[2], TYPE_PARTS[3],
     { "discovery", "Discovery Line", "the \"Discovered\" line" },
 }
-local PARTS_BY_TYPE = { ZONE_CHANGE = ZONE_PARTS, SUBZONE_CHANGE = ZONE_PARTS }
+-- The level up details: each part of a stat row, the talent line and (Forever) the trainer spells line
+local LEVEL_UP_PARTS = {
+    TYPE_PARTS[1], TYPE_PARTS[2], TYPE_PARTS[3],
+    { "statName", "Stat Name", "the stat names (Health:)" },
+    { "statBase", "Stat Base", "the stat totals (448)" },
+    { "statIncrease", "Stat Increase", "the stat increases (+9)" },
+    { "talentCount", "Talent Increase", "the number of new talent points" },
+    { "talentText", "Talent Text", "the talent point text (Talent Point is now available.)" },
+}
+if not addon.IS_RETAIL then
+    table.insert(LEVEL_UP_PARTS, { "skillText", "Skill Text", "\"New at your trainer:\" and the commas between spells" })
+    table.insert(LEVEL_UP_PARTS, { "skillNames", "New Skills", "the new spell names" })
+end
+local PARTS_BY_TYPE = { ZONE_CHANGE = ZONE_PARTS, SUBZONE_CHANGE = ZONE_PARTS, LEVEL_UP = LEVEL_UP_PARTS }
+local DETAIL_PARTS = { statName = true, statBase = true, statIncrease = true, talentCount = true, talentText = true,
+    skillText = true, skillNames = true }
 
 -- The color a part has before it's customized: the type's own color (the divider line follows the main title)
 local function TypeDefaultColor(typeName, part)
     if part == "discovery" then return addon.GetColorSetting("presenceDiscoveryColor") end
+    -- level up details: the increases are green, the rest follow the subtitle (its own color, if it has one)
+    if part == "statIncrease" then
+        local green = GREEN_FONT_COLOR
+        return green and { green.r, green.g, green.b } or { 0.1, 1, 0.1 }
+    end
+    if DETAIL_PARTS[part] then
+        local own = GetDB("presenceTypeColorOn_" .. typeName .. "_sub") and GetDB("presenceTypeColor_" .. typeName .. "_sub")
+        if type(own) == "table" and type(own[1]) == "number" then return own end
+        part = "sub"
+    end
     local title, sub = addon.Presence.GetTypeDefaultColors(typeName)
     return part == "sub" and sub or title
 end
@@ -371,7 +397,7 @@ for _, entry in ipairs(PREVIEW_TYPES) do
             return unpack(TypeDefaultColor(typeName, partKey))
         end
         local tooltip = "Use your own color for " .. partText .. " of " .. typeLabel:lower() .. " banners."
-        if partKey == "title" and PARTS_BY_TYPE[typeName] then
+        if partKey == "title" and PARTS_BY_TYPE[typeName] == ZONE_PARTS then
             tooltip = tooltip .. " It takes the place of Zone Type Colors."
         end
         colors:CheckboxColorSwatch(partLabel, Get(onKey), function(value)

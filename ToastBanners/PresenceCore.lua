@@ -913,14 +913,20 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     if details then
         local path, size, outline = getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline()
         local r, g, b = layer.subText:GetTextColor()
-        local green = GREEN_FONT_COLOR or CreateColor(0.1, 1, 0.1)
         for _, fs in ipairs(layer.detailLines) do
             SetSafeFont(fs, path, size, outline)
             fs:SetTextColor(r, g, b, 1)
         end
+        -- each part in its own color (Colors > Level Up): the increases green, the rest the subtitle's, until set
+        local green = GREEN_FONT_COLOR and { GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b } or { 0.1, 1, 0.1 }
+        local function paint(part, text)
+            local c = getTypeColor(typeName, part) or (part == "statIncrease" and green) or { r, g, b }
+            local function byte(v) return math.floor(math.max(0, math.min(1, v)) * 255 + 0.5) end
+            return ("|cff%02x%02x%02x%s|r"):format(byte(c[1]), byte(c[2]), byte(c[3]), text)
+        end
         local function stat(row)
-            local total = row[2] and (" " .. row[2]) or ""
-            return row[1] .. ":" .. total .. " " .. green:WrapTextInColorCode("+" .. row[3])
+            local total = row[2] and (" " .. paint("statBase", row[2])) or ""
+            return paint("statName", row[1] .. ":") .. total .. " " .. paint("statIncrease", "+" .. row[3])
         end
         local left, right = details.left or {}, details.right or {}
         local rows = math.min(math.max(#left, #right), LEVEL_UP_STAT_ROWS)
@@ -952,11 +958,13 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         if rows > 0 then y = y + 4 end
 
         if details.talents and details.talents > 0 then
-            layer.talentLine:SetText(details.talents == 1 and "1 Talent Point is now available."
-                or (details.talents .. " Talent Points are now available."))
+            layer.talentLine:SetText(paint("talentCount", details.talents) .. " " .. paint("talentText",
+                details.talents == 1 and "Talent Point is now available." or "Talent Points are now available."))
         end
         if details.spells and #details.spells > 0 then
-            layer.spellsLine:SetText("New at your trainer: " .. table.concat(details.spells, ", "))
+            local names = {}
+            for i, name in ipairs(details.spells) do names[i] = paint("skillNames", name) end
+            layer.spellsLine:SetText(paint("skillText", "New at your trainer: ") .. table.concat(names, paint("skillText", ", ")))
         end
         for _, fs in ipairs({ layer.talentLine, layer.spellsLine }) do
             fs:ClearAllPoints()
