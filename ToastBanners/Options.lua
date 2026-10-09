@@ -37,6 +37,7 @@ end
 local function Seconds(v) return ("%.1f sec"):format(v) end
 local function Pixels(v) return v .. " px" end
 local function Multiplier(v) return ("%.1fx"):format(v) end
+local function Percent(v) return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
 
 local page = Kit.NewPage("Toast Banners", {
     onDefaults = function()
@@ -147,6 +148,8 @@ general:Dropdown("Divider Style", {
     { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
 }, Get("presenceDividerStyle"), Set("presenceDividerStyle"),
     "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")
+general:Slider("Divider Opacity", 0.1, 1, 0.05, Get("presenceDividerOpacity"), Set("presenceDividerOpacity"), Percent,
+    "How opaque the divider is, in either style.", { indent = true })
 general:Slider("Vertical Position", -300, 0, 1, Get("presenceFrameY"), Set("presenceFrameY"), nil,
     "How far down from the top of the screen the banners are shown.")
 general:Slider("Scale", 0.5, 2, 0.1, Get("presenceFrameScale"), Set("presenceFrameScale"), Multiplier,

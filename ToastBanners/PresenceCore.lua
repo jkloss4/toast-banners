@@ -82,7 +82,7 @@ local DIVIDER_W    = 400
 local DIVIDER_H    = 2
 -- Faded Ends: the lines that pinch the divider are this much of its width, and this much as opaque
 local DIVIDER_TAPER_WIDTH = 0.55
-local DIVIDER_TAPER_ALPHA = 0.6
+local DIVIDER_TAPER_ALPHA = 1
 local DIVIDER_Y    = -65  -- top of the divider line, from the top of the banner
 local MAX_QUEUE    = 8
 
@@ -721,7 +721,10 @@ local function setDividerSize(L, w)
     L.dividerBottom:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
 end
 
+-- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
 local function setDividerAlpha(L, a)
+    local opacity = addon.GetDB and tonumber(addon.GetDB("presenceDividerOpacity", 0.5)) or 0.5
+    a = a * math.max(0, math.min(1, opacity))
     L.divider:SetAlpha(a)
     local edge = L.dividerFaded and a * DIVIDER_TAPER_ALPHA or 0
     L.dividerTop:SetAlpha(edge)
@@ -1081,7 +1084,7 @@ local function updateEntrance()
         setTitleOffset(L, (1 - te) * 20)
     end
 
-    setDividerAlpha(L, de * 0.5)
+    setDividerAlpha(L, de)
     setDividerWidth(L, DIVIDER_W * de)
 
     local subAlpha = se
@@ -1161,7 +1164,7 @@ local function updateCrossfade()
     oldLayer.titleText:SetAlpha(fade)
     oldLayer.titleShadow:SetAlpha(fade8)
     if oldLayer.questTypeIcon and oldLayer.questTypeIcon:IsShown() then oldLayer.questTypeIcon:SetAlpha(fade) end
-    setDividerAlpha(oldLayer, fade * 0.5)
+    setDividerAlpha(oldLayer, fade)
     oldLayer.subText:SetAlpha(fade)
     oldLayer.subShadow:SetAlpha(fade8)
     if (oldLayer.discoveryText:GetText() or "") ~= "" then
@@ -1188,7 +1191,7 @@ local function updateExit()
     end
 
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
-    setDividerAlpha(L, 0.5 * inv)
+    setDividerAlpha(L, inv)
     setDividerWidth(L, DIVIDER_W * inv)
 
     L.subText:SetAlpha(inv)
@@ -1240,7 +1243,7 @@ local function finalizeEntrance()
         setTitleOffset(L, 0)
     end
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
-    setDividerAlpha(L, 0.5)
+    setDividerAlpha(L, 1)
     setDividerWidth(L, DIVIDER_W)
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
@@ -1951,7 +1954,7 @@ local function DrawPreviewWindow()
     layer.divider:ClearAllPoints()
     layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y)
     setDividerSize(layer, DIVIDER_W)
-    setDividerAlpha(layer, 0.5)
+    setDividerAlpha(layer, 1)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap or 0)
     layer.titleText:SetAlpha(compact and 0 or 1)
