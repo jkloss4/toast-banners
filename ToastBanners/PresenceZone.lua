@@ -169,7 +169,8 @@ local function ScheduleZoneNotification(isNewArea)
         end
         heldBanner = nil
 
-        -- shown, or in flight held until its discovery
+        -- shown, or in flight held until its discovery. The zone banner on screen is only stopped for one that
+        -- actually shows (not for one that's held, turned off, or a repeat of the banner already up)
         local function Show(typeName, title, subtitle, opts)
             if holdUnlessDiscovered and not opts.showDiscovery then
                 heldBanner = { typeName = typeName, title = title, subtitle = subtitle, opts = opts,
@@ -177,6 +178,7 @@ local function ScheduleZoneNotification(isNewArea)
                 addon.Trace("in flight: holding %s in case it's discovered", tostring(title))
                 return
             end
+            if addon.Presence.CancelZoneAnim then addon.Presence.CancelZoneAnim() end
             addon.Presence.QueueOrPlay(typeName, title, subtitle, opts)
         end
 
@@ -194,8 +196,6 @@ local function ScheduleZoneNotification(isNewArea)
             addon.Trace("arrived without walking: subzone banner for %s", sub)
             isNewArea = false
         end
-
-        if addon.Presence.CancelZoneAnim then addon.Presence.CancelZoneAnim() end
 
         local opts = {}
 
