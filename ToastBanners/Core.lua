@@ -170,10 +170,25 @@ end
 
 local function Noop() end
 local function Tracing() return ToastBannersDB and ToastBannersDB.trace == true end
+
+-- Trace lines are also kept in ToastBannersDB.traceLog (the last TRACE_LOG_MAX), so they can be read from the saved
+-- variables file after a /reload or logout instead of from chat. Each starts with the clock time.
+local TRACE_LOG_MAX = 500
+local function SaveTraceLine(line)
+    local log = ToastBannersDB.traceLog or {}
+    ToastBannersDB.traceLog = log
+    log[#log + 1] = date("%H:%M:%S") .. " " .. line
+    while #log > TRACE_LOG_MAX do table.remove(log, 1) end
+end
+addon.SaveTraceLine = SaveTraceLine
+
 addon.Log = {
     isEnabled   = Tracing,
     debug       = function(_, msg)
-        if Tracing() then print(("|cff999999Toast Banners %.2f|r %s"):format(GetTime(), tostring(msg))) end
+        if not Tracing() then return end
+        local line = ("%.2f %s"):format(GetTime(), tostring(msg))
+        print("|cff999999Toast Banners|r " .. line)
+        SaveTraceLine(line)
     end,
     registerTag = Noop,
     enableTag   = Noop,
@@ -292,6 +307,7 @@ events:SetScript("OnEvent", function(self, _, name)
     if name ~= addonName then return end
     self:UnregisterEvent("ADDON_LOADED")
     ToastBannersDB = ToastBannersDB or {}
+    if Tracing() then SaveTraceLine(("---- login or reload (%s)"):format(date("%Y-%m-%d"))) end
 
     local P = addon.Presence
     P.Init()

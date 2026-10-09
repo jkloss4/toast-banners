@@ -506,8 +506,12 @@ SlashCmdList["TOASTBANNERS"] = function(msg)
     elseif cmd == "trace" then
         -- saved, so it also covers the next login
         ToastBannersDB.trace = not ToastBannersDB.trace or nil
-        addon.HSPrint("Trace " .. (ToastBannersDB.trace and "on: banner steps print to chat, also after logging in."
-            or "off."))
+        addon.HSPrint("Trace " .. (ToastBannersDB.trace and "on: banner steps print to chat, also after logging in, "
+            .. "and are saved to disk on /reload or logout." or "off."))
+        if ToastBannersDB.trace then addon.SaveTraceLine("---- trace on") end
+    elseif cmd == "trace clear" then
+        ToastBannersDB.traceLog = nil
+        addon.HSPrint("Saved trace cleared.")
     else
         Kit.Open(page)
     end
