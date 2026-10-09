@@ -80,6 +80,9 @@ local FRAME_HEIGHT = 250
 local FRAME_Y_DEF  = -180
 local DIVIDER_W    = 400
 local DIVIDER_H    = 2
+-- Faded Ends: the lines that pinch the divider are this much of its width, and this much as opaque
+local DIVIDER_TAPER_WIDTH = 0.55
+local DIVIDER_TAPER_ALPHA = 0.6
 local DIVIDER_Y    = -65  -- top of the divider line, from the top of the banner
 local MAX_QUEUE    = 8
 
@@ -636,6 +639,16 @@ local function CreateLayer(parent)
     L.divider:SetPoint("TOP", 0, -65)
     L.divider:SetColorTexture(1, 1, 1, 1)
     L.divider:SetAlpha(0)
+    -- Faded Ends: a 1px line just above and below the middle of the divider, narrower and fainter, so it pinches
+    -- toward its ends (Blizzard's divider image is a single pixel tall: it only fades)
+    L.dividerTop = parent:CreateTexture(nil, "ARTWORK")
+    L.dividerTop:SetPoint("BOTTOM", L.divider, "TOP")
+    L.dividerBottom = parent:CreateTexture(nil, "ARTWORK")
+    L.dividerBottom:SetPoint("TOP", L.divider, "BOTTOM")
+    for _, edge in ipairs({ L.dividerTop, L.dividerBottom }) do
+        edge:SetSize(DIVIDER_W * DIVIDER_TAPER_WIDTH, 1)
+        edge:SetAlpha(0)
+    end
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
     SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
@@ -700,6 +713,21 @@ local function CreateLayer(parent)
 end
 
 local F, layerA, layerB, curLayer, oldLayer
+
+-- The divider and, with Faded Ends, the lines that pinch it: sized and faded together
+local function setDividerSize(L, w)
+    L.divider:SetSize(w, DIVIDER_H)
+    L.dividerTop:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
+    L.dividerBottom:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
+end
+
+local function setDividerAlpha(L, a)
+    L.divider:SetAlpha(a)
+    local edge = L.dividerFaded and a * DIVIDER_TAPER_ALPHA or 0
+    L.dividerTop:SetAlpha(edge)
+    L.dividerBottom:SetAlpha(edge)
+end
+
 local anim
 local active, activeTitle, activeTypeName
 local activeOpts, activeSubtitle  -- kept so a preview can be redrawn as its settings change
@@ -775,7 +803,7 @@ end
 local function resetLayer(L)
     L.titleText:SetAlpha(0)
     L.titleShadow:SetAlpha(0)
-    L.divider:SetAlpha(0)
+    setDividerAlpha(L, 0)
     L.subText:SetAlpha(0)
     L.subShadow:SetAlpha(0)
     L.discoveryText:SetAlpha(0)
@@ -824,15 +852,15 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- Divider Style: Blizzard's settings divider (faded, pinched ends) or a solid line, tinted to the line color
     local faded = addon.GetDB("presenceDividerStyle", "faded") == "faded"
         and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
-    if faded then
-        -- at the image's own height, where its ends taper: squashed to the line's 2px they can't
-        layer.divider:SetAtlas("Options_HorizontalDivider")
-        layer.dividerH = math.max(DIVIDER_H, math.min(16, faded.height or DIVIDER_H))
-    else
-        layer.divider:SetColorTexture(1, 1, 1, 1)
-        layer.dividerH = DIVIDER_H
+    layer.dividerFaded = faded and true or false
+    for _, part in ipairs({ layer.divider, layer.dividerTop, layer.dividerBottom }) do
+        if faded then
+            part:SetAtlas("Options_HorizontalDivider")
+        else
+            part:SetColorTexture(1, 1, 1, 1)
+        end
+        part:SetVertexColor(lc[1], lc[2], lc[3])
     end
-    layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
 
     if compactLayout then
         layer.titleText:SetText("")
@@ -845,7 +873,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.subShadow:SetText(subtitle or "")
 
     resetLayer(layer)
-    layer.divider:SetSize(0.01, layer.dividerH or DIVIDER_H)
+    setDividerSize(layer, 0.01)
 
     if layer.questTypeIcon then
         local showIcon = false
@@ -893,8 +921,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
     layer.titleGap = getTitleGap(variant)
     layer.divider:ClearAllPoints()
-    -- centered on the 2px line's spot, however tall it's drawn, so the title and subtitle stay put
-    layer.divider:SetPoint("TOP", 0, DIVIDER_Y + ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2)
+    layer.divider:SetPoint("TOP", 0, DIVIDER_Y)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
@@ -1031,7 +1058,7 @@ local function setDividerWidth(L, w)
     w = math.max(w, 0.01)
     if lastDividerWidth ~= w then
         lastDividerWidth = w
-        L.divider:SetSize(w, L.dividerH or DIVIDER_H)
+        setDividerSize(L, w)
     end
 end
 
@@ -1054,7 +1081,7 @@ local function updateEntrance()
         setTitleOffset(L, (1 - te) * 20)
     end
 
-    L.divider:SetAlpha(de * 0.5)
+    setDividerAlpha(L, de * 0.5)
     setDividerWidth(L, DIVIDER_W * de)
 
     local subAlpha = se
@@ -1134,7 +1161,7 @@ local function updateCrossfade()
     oldLayer.titleText:SetAlpha(fade)
     oldLayer.titleShadow:SetAlpha(fade8)
     if oldLayer.questTypeIcon and oldLayer.questTypeIcon:IsShown() then oldLayer.questTypeIcon:SetAlpha(fade) end
-    oldLayer.divider:SetAlpha(fade * 0.5)
+    setDividerAlpha(oldLayer, fade * 0.5)
     oldLayer.subText:SetAlpha(fade)
     oldLayer.subShadow:SetAlpha(fade8)
     if (oldLayer.discoveryText:GetText() or "") ~= "" then
@@ -1161,7 +1188,7 @@ local function updateExit()
     end
 
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
-    L.divider:SetAlpha(0.5 * inv)
+    setDividerAlpha(L, 0.5 * inv)
     setDividerWidth(L, DIVIDER_W * inv)
 
     L.subText:SetAlpha(inv)
@@ -1213,7 +1240,7 @@ local function finalizeEntrance()
         setTitleOffset(L, 0)
     end
     if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
-    L.divider:SetAlpha(0.5)
+    setDividerAlpha(L, 0.5)
     setDividerWidth(L, DIVIDER_W)
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
@@ -1922,17 +1949,16 @@ local function DrawPreviewWindow()
     local compact = (previewTypeName == "QUEST_UPDATE" or previewTypeName == "SCENARIO_UPDATE")
         and addon.GetDB("presenceHideQuestUpdateTitle", false)
     layer.divider:ClearAllPoints()
-    local extra = ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2 -- a taller faded divider, centered on the line
-    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y + extra)
-    layer.divider:SetSize(DIVIDER_W, layer.dividerH or DIVIDER_H)
-    layer.divider:SetAlpha(0.5)
+    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y)
+    setDividerSize(layer, DIVIDER_W)
+    setDividerAlpha(layer, 0.5)
     layer.titleText:ClearAllPoints()
-    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, (layer.titleGap or 0) - extra)
+    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap or 0)
     layer.titleText:SetAlpha(compact and 0 or 1)
     layer.titleShadow:SetAlpha(compact and 0 or 0.8)
     if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
     layer.subText:ClearAllPoints()
-    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10) + extra)
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10))
     layer.discoveryText:ClearAllPoints()
     layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -(layer.discoveryGap or 5))
     layer.subText:SetAlpha(1)
