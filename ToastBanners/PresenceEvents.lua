@@ -118,11 +118,38 @@ local function OnAddonLoaded(addonName)
     end
 end
 
-local function OnPlayerLevelUp(_, level)
+-- A number to show, or nil (retail can hide some values from addons in combat)
+local function Plain(value)
+    if type(value) ~= "number" or (issecretvalue and issecretvalue(value)) then return nil end
+    return value
+end
+
+-- The level up's increases come with the event; the totals are read a moment later, once they include them
+local LEVEL_UP_STATS_DELAY = 0.3
+
+local function OnPlayerLevelUp(_, level, healthDelta, powerDelta, numNewTalents, _, strengthDelta, agilityDelta,
+                               staminaDelta, intellectDelta)
     if not IsPresenceTypeEnabled("presenceLevelUp", nil, true) then return end
     if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
     local L = addon.L or {}
-    addon.Presence.QueueOrPlay("LEVEL_UP", L["PRESENCE_LEVEL_UP"], L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]:format(level or "??"))
+    C_Timer.After(LEVEL_UP_STATS_DELAY, function()
+        local _, powerToken = UnitPowerType("player")
+        local statTotals = {}
+        for stat = 1, 4 do
+            statTotals[stat] = Plain(select(2, UnitStat("player", stat)))
+        end
+        local details = addon.Presence.BuildLevelUpDetails and addon.Presence.BuildLevelUpDetails({
+            health = Plain(UnitHealthMax("player")), healthDelta = Plain(healthDelta),
+            power = Plain(UnitPowerMax("player")), powerDelta = Plain(powerDelta),
+            powerName = powerToken and _G[powerToken] or nil,
+            statTotals = statTotals,
+            stats = { Plain(strengthDelta), Plain(agilityDelta), Plain(staminaDelta), Plain(intellectDelta) },
+            talents = Plain(numNewTalents),
+            spells = addon.Presence.TrainerSpellsAt and level and addon.Presence.TrainerSpellsAt(level) or nil,
+        })
+        addon.Presence.QueueOrPlay("LEVEL_UP", L["PRESENCE_LEVEL_UP"],
+            L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]:format(level or "??"), { levelDetails = details })
+    end)
 end
 
 local function OnRaidBossEmote(_, msg, unitName)
@@ -279,7 +306,7 @@ end
 
 local eventHandlers = {
     ADDON_LOADED             = function(_, addonName) OnAddonLoaded(addonName) end,
-    PLAYER_LEVEL_UP          = function(_, level) OnPlayerLevelUp(_, level) end,
+    PLAYER_LEVEL_UP          = function(event, ...) OnPlayerLevelUp(event, ...) end,
     RAID_BOSS_EMOTE          = function(_, msg, unitName) OnRaidBossEmote(_, msg, unitName) end,
     BOSS_KILL                = function(event, encounterID, encounterName) OnBossKill(event, encounterID, encounterName) end,
     ACHIEVEMENT_EARNED       = function(_, achID) OnAchievementEarned(_, achID) end,

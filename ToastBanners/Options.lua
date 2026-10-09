@@ -226,6 +226,21 @@ TypeRow("Scenario Progress", "SCENARIO_UPDATE", GetWithFallback("presenceScenari
 TypeRow("Scenario Complete", "SCENARIO_COMPLETE", GetWithFallback("presenceScenarioComplete", "showScenarioEvents"),
     Set("presenceScenarioComplete"), "When you complete a scenario" .. (addon.HAS_DELVES and " or Delve." or "."))
 
+notifications:Header("Level Up")
+TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
+    "When you gain a level." .. OFF_NOTE)
+local function LevelUpOn() return Get("presenceLevelUp")() end
+notifications:Checkbox("Show Stat Increases", Get("presenceLevelUpStats"), Set("presenceLevelUpStats"),
+    "Your health, mana and stats with what the level added, under the banner's title.",
+    { indent = true, enabled = LevelUpOn })
+notifications:Checkbox("Show Talent Points", Get("presenceLevelUpTalents"), Set("presenceLevelUpTalents"),
+    "How many new talent points you have, on levels that give one.", { indent = true, enabled = LevelUpOn })
+if not addon.IS_RETAIL then
+    notifications:Checkbox("Show New Trainer Spells", Get("presenceLevelUpSpells"), Set("presenceLevelUpSpells"),
+        "The spells your class trainer can now teach you. Toast Banners learns them from the trainer's list, so "
+        .. "they show once you've visited your class trainer.", { indent = true, enabled = LevelUpOn })
+end
+
 notifications:Header("Other")
 TypeRow("Achievements", "ACHIEVEMENT", Get("presenceAchievement"), Set("presenceAchievement"),
     "When you earn an achievement." .. OFF_NOTE)
@@ -236,8 +251,6 @@ TypeRow("Boss Emotes", "BOSS_EMOTE", Get("presenceBossEmote"), Set("presenceBoss
     "Raid and dungeon boss emotes." .. OFF_NOTE)
 TypeRow("Boss Defeated", "BOSS_DEFEATED", Get("presenceBossDefeated"), Set("presenceBossDefeated"),
     "When a dungeon or raid boss is defeated." .. OFF_NOTE)
-TypeRow("Level Up", "LEVEL_UP", Get("presenceLevelUp"), Set("presenceLevelUp"),
-    "When you gain a level." .. OFF_NOTE)
 TypeRow("Rare Defeated", "RARE_DEFEATED", Get("presenceRareDefeated"), Set("presenceRareDefeated"),
     "When a rare creature nearby is defeated.")
 

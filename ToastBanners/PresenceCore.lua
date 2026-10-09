@@ -652,6 +652,21 @@ local function CreateLayer(parent)
     L.discoveryText:SetAlpha(0)
     L.discoveryShadow:SetAlpha(0)
 
+    -- Level up details (stat increases, talent points, trainer spells): a block under the subtitle that fades in and
+    -- out with the "Discovered" line
+    L.details = CreateFrame("Frame", nil, parent)
+    L.details:SetSize(FRAME_WIDTH, 1)
+    L.details:SetAlpha(0)
+    L.statsLeft = L.details:CreateFontString(nil, "OVERLAY")
+    L.statsLeft:SetJustifyH("LEFT")
+    L.statsRight = L.details:CreateFontString(nil, "OVERLAY")
+    L.statsRight:SetJustifyH("LEFT")
+    L.talentLine = L.details:CreateFontString(nil, "OVERLAY")
+    L.talentLine:SetJustifyH("CENTER")
+    L.spellsLine = L.details:CreateFontString(nil, "OVERLAY")
+    L.spellsLine:SetJustifyH("CENTER")
+    L.spellsLine:SetWidth(FRAME_WIDTH - 120)
+
     LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
     LockDirectFont(L.titleText,       GetPresenceTitleFont)
     LockDirectFont(L.subShadow,       GetPresenceSubFont)
@@ -745,6 +760,8 @@ local function resetLayer(L)
     L.discoveryShadow:SetAlpha(0)
     L.discoveryText:SetText("")
     L.discoveryShadow:SetText("")
+    L.details:SetAlpha(0)
+    L.hasDetails = false
     if L.questTypeIcon then L.questTypeIcon:Hide() end
 end
 
@@ -867,6 +884,71 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         layer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
         addon.Presence.pendingDiscovery = nil
     end
+
+    -- Level up details: { left = { {label, total, delta}... }, right = {...}, talents = n, spells = { names } }
+    local details = typeName == "LEVEL_UP" and opts.levelDetails or nil
+    layer.hasDetails = false
+    layer.details:SetAlpha(0)
+    for _, fs in ipairs({ layer.statsLeft, layer.statsRight, layer.talentLine, layer.spellsLine }) do
+        fs:SetText("")
+    end
+    if details then
+        local path, size, outline = getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline()
+        local r, g, b = layer.subText:GetTextColor()
+        local green = GREEN_FONT_COLOR or CreateColor(0.1, 1, 0.1)
+        for _, fs in ipairs({ layer.statsLeft, layer.statsRight, layer.talentLine, layer.spellsLine }) do
+            SetSafeFont(fs, path, size, outline)
+            fs:SetTextColor(r, g, b, 1)
+            fs:SetSpacing(4)
+        end
+        local function column(rows)
+            local lines = {}
+            for _, row in ipairs(rows or {}) do
+                local total = row[2] and (" " .. row[2]) or ""
+                lines[#lines + 1] = row[1] .. ":" .. total .. " " .. green:WrapTextInColorCode("+" .. row[3])
+            end
+            return table.concat(lines, "\n")
+        end
+        layer.statsLeft:SetText(column(details.left))
+        layer.statsRight:SetText(column(details.right))
+        if details.talents and details.talents > 0 then
+            layer.talentLine:SetText(details.talents == 1 and "1 Talent Point is now available."
+                or (details.talents .. " Talent Points are now available."))
+        end
+        if details.spells and #details.spells > 0 then
+            layer.spellsLine:SetText("New at your trainer: " .. table.concat(details.spells, ", "))
+        end
+
+        -- Stats in two columns either side of the middle, then the talent and spells lines, each under the last
+        local y = 0
+        local hasLeft, hasRight = layer.statsLeft:GetText() ~= "", layer.statsRight:GetText() ~= ""
+        layer.statsLeft:ClearAllPoints()
+        layer.statsRight:ClearAllPoints()
+        if hasLeft and hasRight then
+            layer.statsLeft:SetPoint("TOPRIGHT", layer.details, "TOP", -16, 0)
+            layer.statsRight:SetPoint("TOPLEFT", layer.details, "TOP", 16, 0)
+        else
+            layer.statsLeft:SetPoint("TOP", layer.details, "TOP", 0, 0)
+            layer.statsRight:SetPoint("TOP", layer.details, "TOP", 0, 0)
+        end
+        if hasLeft or hasRight then
+            y = math.max(layer.statsLeft:GetStringHeight(), layer.statsRight:GetStringHeight()) + 8
+        end
+        for _, fs in ipairs({ layer.talentLine, layer.spellsLine }) do
+            fs:ClearAllPoints()
+            fs:SetPoint("TOP", layer.details, "TOP", 0, -y)
+            if fs:GetText() ~= "" then y = y + fs:GetStringHeight() + 6 end
+        end
+        layer.hasDetails = y > 0
+
+        -- under the subtitle's final spot (and the "Discovered" line, if there is one), without the slide
+        local below = DIVIDER_Y - DIVIDER_H - subGap - layer.subText:GetStringHeight() - 10
+        if (layer.discoveryText:GetText() or "") ~= "" then
+            below = below - layer.discoveryGap - layer.discoveryText:GetStringHeight()
+        end
+        layer.details:ClearAllPoints()
+        layer.details:SetPoint("TOP", 0, below)
+    end
 end
 
 -- Layout helpers: only call through when the value changes.
@@ -942,6 +1024,7 @@ end
 local function setDiscoveryAlpha(L, a)
     L.discoveryText:SetAlpha(a)
     L.discoveryShadow:SetAlpha(a * 0.8)
+    if L.hasDetails then L.details:SetAlpha(a) end -- the level up details fade with it
 end
 
 -- Blizzard's discovery message can come seconds after the banner starts (the server checks exploration every few
@@ -981,6 +1064,7 @@ local function updateCrossfade()
         oldLayer.discoveryText:SetAlpha(fade)
         oldLayer.discoveryShadow:SetAlpha(fade8)
     end
+    if oldLayer.hasDetails then oldLayer.details:SetAlpha(math.min(oldLayer.details:GetAlpha(), fade)) end
     updateEntrance()
 end
 
@@ -1268,7 +1352,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     -- Cache per-animation values; reset trackers so first frame always writes.
     cachedEntranceDur  = getEntranceDur()
     cachedExitDur      = getExitDur()
-    cachedHasDiscovery = (curLayer.discoveryText:GetText() or "") ~= ""
+    cachedHasDiscovery = (curLayer.discoveryText:GetText() or "") ~= "" or curLayer.hasDetails
     lastTitleOffsetY   = nil
     lastSubOffsetY     = nil
     lastDividerWidth   = nil
@@ -1564,7 +1648,7 @@ local function RefreshPreview()
     resetLayer(oldLayer)
     cachedSubGap        = curLayer.subGap or 10
     cachedCompactLayout = (activeTypeName == "QUEST_UPDATE" or activeTypeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
-    cachedHasDiscovery  = (curLayer.discoveryText:GetText() or "") ~= ""
+    cachedHasDiscovery  = (curLayer.discoveryText:GetText() or "") ~= "" or curLayer.hasDetails
     lastTitleOffsetY, lastSubOffsetY, lastDividerWidth = nil, nil, nil
     subtitleTransition = nil
     finalizeEntrance()
@@ -1607,6 +1691,36 @@ end
 -- Returns the typeName of the currently playing or holding cinematic.
 local function GetActiveTypeName()
     return activeTypeName
+end
+
+-- The level up details the options ask for, from a level up's numbers: { health, healthDelta, power, powerDelta,
+-- powerName, statTotals = {4}, stats = {4 deltas}, talents, spells }. Totals are optional; unchanged stats are left out.
+local function BuildLevelUpDetails(info)
+    local details = {}
+    if addon.GetDB("presenceLevelUpStats", true) then
+        local left, right = {}, {}
+        if (info.healthDelta or 0) > 0 then
+            left[#left + 1] = { HEALTH or "Health", info.health, info.healthDelta }
+        end
+        if (info.powerDelta or 0) > 0 then
+            left[#left + 1] = { info.powerName or MANA or "Mana", info.power, info.powerDelta }
+        end
+        for stat = 1, 4 do -- Strength, Agility, Stamina, Intellect
+            local delta = info.stats and info.stats[stat]
+            if (delta or 0) > 0 then
+                right[#right + 1] = { _G["SPELL_STAT" .. stat .. "_NAME"] or "", info.statTotals and info.statTotals[stat], delta }
+            end
+        end
+        details.left = #left > 0 and left or nil
+        details.right = #right > 0 and right or nil
+    end
+    if addon.GetDB("presenceLevelUpTalents", true) and (info.talents or 0) > 0 then
+        details.talents = info.talents
+    end
+    if not addon.IS_RETAIL and addon.GetDB("presenceLevelUpSpells", true) and info.spells and #info.spells > 0 then
+        details.spells = info.spells
+    end
+    return next(details) and details or nil
 end
 
 -- Build preview sample for a toast type. Uses addon.L for localized strings.
@@ -1671,7 +1785,13 @@ local function getPreviewSample(typeName)
     end
     if typeName == "LEVEL_UP" then
         local fmt = L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]
-        return { title = L["PRESENCE_LEVEL_UP"], subtitle = fmt:format(UnitLevel("player") or "") }
+        local details = BuildLevelUpDetails({
+            health = 448, healthDelta = 9, power = 423, powerDelta = 18, powerName = MANA,
+            statTotals = { 0, 46, 49, 27 }, stats = { 0, 2, 1, 1 },
+            talents = 1, spells = { "Immolation Trap", "Mongoose Bite" },
+        })
+        return { title = L["PRESENCE_LEVEL_UP"], subtitle = fmt:format(UnitLevel("player") or ""),
+            opts = { levelDetails = details } }
     end
     if typeName == "RARE_DEFEATED" then
         return { title = L["PRESENCE_RARE_DEFEATED"], subtitle = "Gorged Great-Horn" }
@@ -1703,7 +1823,7 @@ end
 -- ============================================================================
 
 local WINDOW_NAME = "ToastBannersPreviewWindow"
-local PREVIEW_W, PREVIEW_H = FRAME_WIDTH, 300  -- room above and below the divider for the largest settings
+local PREVIEW_W, PREVIEW_H = FRAME_WIDTH, 380  -- room above and below the divider for the largest settings and level up details
 local PREVIEW_DIVIDER_Y = -150
 local previewWindow, previewHolder, previewLayer, previewTypeName
 
@@ -1742,6 +1862,10 @@ local function DrawPreviewWindow()
     local hasDiscovery = (layer.discoveryText:GetText() or "") ~= ""
     layer.discoveryText:SetAlpha(hasDiscovery and 1 or 0)
     layer.discoveryShadow:SetAlpha(hasDiscovery and 0.8 or 0)
+    -- the level up details under the subtitle, or under the "Discovered" line when there is one
+    layer.details:ClearAllPoints()
+    layer.details:SetPoint("TOP", hasDiscovery and layer.discoveryText or layer.subText, "BOTTOM", 0, -10)
+    layer.details:SetAlpha(layer.hasDetails and 1 or 0)
 
     -- at the banners' own scale, as large as fits on screen
     local scale = math.min(getFrameScale(), (UIParent:GetWidth() - 80) / PREVIEW_W, (UIParent:GetHeight() - 120) / PREVIEW_H)
@@ -1810,6 +1934,7 @@ addon.Log.registerTag("presence", "presenceDebugLive")
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
+addon.Presence.BuildLevelUpDetails = BuildLevelUpDetails
 addon.Presence.ReplayZoneBannerFor = ReplayZoneBannerFor
 addon.Presence.CancelZoneAnim     = CancelZoneAnim
 addon.Presence.SoftUpdateSubtitle = SoftUpdateSubtitle

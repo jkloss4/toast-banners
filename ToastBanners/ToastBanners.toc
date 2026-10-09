@@ -14,6 +14,7 @@ PresenceScenario.lua
 PresenceQuest.lua
 PresenceZone.lua
 PresenceAchievement.lua
+LevelUpTrainer.lua
 PresenceEvents.lua
 PresenceErrors.lua
 SettingsKit.lua
