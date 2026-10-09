@@ -825,9 +825,12 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     local faded = addon.GetDB("presenceDividerStyle", "faded") == "faded"
         and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
     if faded then
+        -- at the image's own height, where its ends taper: squashed to the line's 2px they can't
         layer.divider:SetAtlas("Options_HorizontalDivider")
+        layer.dividerH = math.max(DIVIDER_H, math.min(16, faded.height or DIVIDER_H))
     else
         layer.divider:SetColorTexture(1, 1, 1, 1)
+        layer.dividerH = DIVIDER_H
     end
     layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
 
@@ -842,7 +845,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.subShadow:SetText(subtitle or "")
 
     resetLayer(layer)
-    layer.divider:SetSize(0.01, DIVIDER_H)
+    layer.divider:SetSize(0.01, layer.dividerH or DIVIDER_H)
 
     if layer.questTypeIcon then
         local showIcon = false
@@ -890,7 +893,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
     layer.titleGap = getTitleGap(variant)
     layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, DIVIDER_Y)
+    -- centered on the 2px line's spot, however tall it's drawn, so the title and subtitle stay put
+    layer.divider:SetPoint("TOP", 0, DIVIDER_Y + ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
@@ -1027,7 +1031,7 @@ local function setDividerWidth(L, w)
     w = math.max(w, 0.01)
     if lastDividerWidth ~= w then
         lastDividerWidth = w
-        L.divider:SetSize(w, DIVIDER_H)
+        L.divider:SetSize(w, L.dividerH or DIVIDER_H)
     end
 end
 
@@ -1918,16 +1922,17 @@ local function DrawPreviewWindow()
     local compact = (previewTypeName == "QUEST_UPDATE" or previewTypeName == "SCENARIO_UPDATE")
         and addon.GetDB("presenceHideQuestUpdateTitle", false)
     layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y)
-    layer.divider:SetSize(DIVIDER_W, DIVIDER_H)
+    local extra = ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2 -- a taller faded divider, centered on the line
+    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y + extra)
+    layer.divider:SetSize(DIVIDER_W, layer.dividerH or DIVIDER_H)
     layer.divider:SetAlpha(0.5)
     layer.titleText:ClearAllPoints()
-    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap or 0)
+    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, (layer.titleGap or 0) - extra)
     layer.titleText:SetAlpha(compact and 0 or 1)
     layer.titleShadow:SetAlpha(compact and 0 or 0.8)
     if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
     layer.subText:ClearAllPoints()
-    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10))
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10) + extra)
     layer.discoveryText:ClearAllPoints()
     layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -(layer.discoveryGap or 5))
     layer.subText:SetAlpha(1)
