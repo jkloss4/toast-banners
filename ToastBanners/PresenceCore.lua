@@ -80,7 +80,9 @@ local FRAME_HEIGHT = 250
 local FRAME_Y_DEF  = -180
 local DIVIDER_W    = 400
 local DIVIDER_H    = 2
--- Faded Ends: the lines that pinch the divider are this much of its width, and this much as opaque
+-- Faded Ends: the middle line is solid for this much of its width, then fades to each end; the lines above and below
+-- it, which pinch it, are this much of its width (fading from the middle out) and this much as opaque
+local DIVIDER_FADE_SOLID  = 0.6
 local DIVIDER_TAPER_WIDTH = 0.55
 local DIVIDER_TAPER_ALPHA = 1
 local DIVIDER_Y    = -65  -- top of the divider line, from the top of the banner
@@ -639,16 +641,27 @@ local function CreateLayer(parent)
     L.divider:SetPoint("TOP", 0, -65)
     L.divider:SetColorTexture(1, 1, 1, 1)
     L.divider:SetAlpha(0)
-    -- Faded Ends: a 1px line just above and below the middle of the divider, narrower and fainter, so it pinches
-    -- toward its ends (Blizzard's divider image is a single pixel tall: it only fades)
-    L.dividerTop = parent:CreateTexture(nil, "ARTWORK")
-    L.dividerTop:SetPoint("BOTTOM", L.divider, "TOP")
-    L.dividerBottom = parent:CreateTexture(nil, "ARTWORK")
-    L.dividerBottom:SetPoint("TOP", L.divider, "BOTTOM")
-    for _, edge in ipairs({ L.dividerTop, L.dividerBottom }) do
-        edge:SetSize(DIVIDER_W * DIVIDER_TAPER_WIDTH, 1)
-        edge:SetAlpha(0)
+    -- Faded Ends, drawn from gradients so it's even on both sides (Blizzard's divider image is a single pixel tall
+    -- and brighter left of center): a 1px line, solid in the middle and fading at the ends, and a 1px line above and
+    -- below it, narrower and fading from the middle out, so it's 3px at the middle and tapers to 1px
+    local function part()
+        local t = parent:CreateTexture(nil, "ARTWORK")
+        t:SetColorTexture(1, 1, 1, 1)
+        t:SetAlpha(0)
+        return t
     end
+    L.fadeMid, L.fadeMidL, L.fadeMidR = part(), part(), part()
+    L.fadeMid:SetPoint("CENTER", L.divider, "CENTER")
+    L.fadeMidL:SetPoint("RIGHT", L.fadeMid, "LEFT")
+    L.fadeMidR:SetPoint("LEFT", L.fadeMid, "RIGHT")
+    L.fadeTopL, L.fadeTopR, L.fadeBotL, L.fadeBotR = part(), part(), part(), part()
+    L.fadeTopL:SetPoint("BOTTOMRIGHT", L.fadeMid, "TOP")
+    L.fadeTopR:SetPoint("BOTTOMLEFT", L.fadeMid, "TOP")
+    L.fadeBotL:SetPoint("TOPRIGHT", L.fadeMid, "BOTTOM")
+    L.fadeBotR:SetPoint("TOPLEFT", L.fadeMid, "BOTTOM")
+    L.fadeLeft = { L.fadeMidL, L.fadeTopL, L.fadeBotL }   -- fade out toward the left
+    L.fadeRight = { L.fadeMidR, L.fadeTopR, L.fadeBotR }  -- and toward the right
+    L.fadeEdges = { L.fadeTopL, L.fadeTopR, L.fadeBotL, L.fadeBotR }
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
     SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
@@ -716,20 +729,21 @@ local F, layerA, layerB, curLayer, oldLayer
 
 -- The divider and, with Faded Ends, the lines that pinch it: sized and faded together
 local function setDividerSize(L, w)
-    -- Faded Ends: a 1px middle line, so with the lines above and below it the divider is 3px thick, tapering to 1px
-    L.divider:SetSize(w, L.dividerFaded and 1 or DIVIDER_H)
-    L.dividerTop:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
-    L.dividerBottom:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
+    L.divider:SetSize(w, DIVIDER_H) -- the solid line, and what the faded one is centered on
+    local solid = w * DIVIDER_FADE_SOLID
+    L.fadeMid:SetSize(math.max(solid, 0.01), 1)
+    for _, t in ipairs({ L.fadeMidL, L.fadeMidR }) do t:SetSize(math.max((w - solid) / 2, 0.01), 1) end
+    for _, t in ipairs(L.fadeEdges) do t:SetSize(math.max(w * DIVIDER_TAPER_WIDTH / 2, 0.01), 1) end
 end
 
 -- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
 local function setDividerAlpha(L, a)
     local opacity = addon.GetDB and tonumber(addon.GetDB("presenceDividerOpacity", 0.5)) or 0.5
     a = a * math.max(0, math.min(1, opacity))
-    L.divider:SetAlpha(a)
-    local edge = L.dividerFaded and a * DIVIDER_TAPER_ALPHA or 0
-    L.dividerTop:SetAlpha(edge)
-    L.dividerBottom:SetAlpha(edge)
+    L.divider:SetAlpha(L.dividerFaded and 0 or a)
+    local faded = L.dividerFaded and a or 0
+    for _, t in ipairs({ L.fadeMid, L.fadeMidL, L.fadeMidR }) do t:SetAlpha(faded) end
+    for _, t in ipairs(L.fadeEdges) do t:SetAlpha(faded * DIVIDER_TAPER_ALPHA) end
 end
 
 local anim
@@ -853,17 +867,14 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    -- Divider Style: Blizzard's settings divider (faded, pinched ends) or a solid line, tinted to the line color
-    local faded = addon.GetDB("presenceDividerStyle", "faded") == "faded"
-        and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
-    layer.dividerFaded = faded and true or false
-    for _, part in ipairs({ layer.divider, layer.dividerTop, layer.dividerBottom }) do
-        if faded then
-            part:SetAtlas("Options_HorizontalDivider")
-        else
-            part:SetColorTexture(1, 1, 1, 1)
-        end
-        part:SetVertexColor(lc[1], lc[2], lc[3])
+    -- Divider Style: faded ends (fading and narrowing toward each end) or a solid line, in the line color
+    layer.dividerFaded = addon.GetDB("presenceDividerStyle", "faded") == "faded" and CreateColor ~= nil
+    layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
+    if layer.dividerFaded then
+        local solid, clear = CreateColor(lc[1], lc[2], lc[3], 1), CreateColor(lc[1], lc[2], lc[3], 0)
+        layer.fadeMid:SetVertexColor(lc[1], lc[2], lc[3])
+        for _, t in ipairs(layer.fadeLeft) do t:SetGradient("HORIZONTAL", clear, solid) end
+        for _, t in ipairs(layer.fadeRight) do t:SetGradient("HORIZONTAL", solid, clear) end
     end
 
     if compactLayout then
