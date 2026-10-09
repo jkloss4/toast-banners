@@ -710,7 +710,7 @@ end
 local F, layerA, layerB, curLayer, oldLayer
 
 local function setDividerSize(L, w)
-    L.divider:SetSize(w, DIVIDER_H)
+    L.divider:SetSize(w, L.dividerH or DIVIDER_H)
     L.fadeL:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
     L.fadeR:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
 end
@@ -845,8 +845,17 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    -- Divider Style: Blizzard's settings divider (fading toward each end) or a solid line, tinted to the line color
-    local atlas = addon.GetDB("presenceDividerStyle", "faded") == "faded" and C_Texture and C_Texture.GetAtlasInfo
+    -- Divider Style: Blizzard's settings divider (fading toward each end) or a solid line, tinted to the line color;
+    -- or the gold bar from Blizzard's level up toast, at its own height and in its own gold (a tint muddies it)
+    local style = addon.GetDB("presenceDividerStyle", "faded")
+    local bar = style == "levelup" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("levelup-bar-gold")
+    layer.dividerH = bar and math.max(DIVIDER_H, math.min(24, bar.height or DIVIDER_H)) or DIVIDER_H
+    if bar then
+        layer.divider:SetAtlas("levelup-bar-gold")
+    else
+        layer.divider:SetColorTexture(1, 1, 1, 1)
+    end
+    local atlas = style == "faded" and C_Texture and C_Texture.GetAtlasInfo
         and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
     layer.dividerFaded = atlas and (atlas.file or atlas.filename) and true or false
     if layer.dividerFaded then
@@ -860,6 +869,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     for _, part in ipairs({ layer.divider, layer.fadeL, layer.fadeR }) do
         part:SetVertexColor(lc[1], lc[2], lc[3])
     end
+    if bar then layer.divider:SetVertexColor(1, 1, 1) end
 
     if compactLayout then
         layer.titleText:SetText("")
@@ -920,7 +930,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
     layer.titleGap = getTitleGap(variant)
     layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, DIVIDER_Y)
+    -- a taller divider (the level up bar) is centered on the line's spot, so the title and subtitle stay put
+    layer.divider:SetPoint("TOP", 0, DIVIDER_Y + ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)
     layer.subText:ClearAllPoints()
@@ -1948,16 +1959,17 @@ local function DrawPreviewWindow()
     local compact = (previewTypeName == "QUEST_UPDATE" or previewTypeName == "SCENARIO_UPDATE")
         and addon.GetDB("presenceHideQuestUpdateTitle", false)
     layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y)
+    local extra = ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2 -- a taller divider, centered on the line
+    layer.divider:SetPoint("TOP", 0, PREVIEW_DIVIDER_Y + extra)
     setDividerSize(layer, DIVIDER_W)
     setDividerAlpha(layer, 1)
     layer.titleText:ClearAllPoints()
-    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, layer.titleGap or 0)
+    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, (layer.titleGap or 0) - extra)
     layer.titleText:SetAlpha(compact and 0 or 1)
     layer.titleShadow:SetAlpha(compact and 0 or 0.8)
     if layer.questTypeIcon:IsShown() then layer.questTypeIcon:SetAlpha(1) end
     layer.subText:ClearAllPoints()
-    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10))
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(layer.subGap or 10) + extra)
     layer.discoveryText:ClearAllPoints()
     layer.discoveryText:SetPoint("TOP", layer.subText, "BOTTOM", 0, -(layer.discoveryGap or 5))
     layer.subText:SetAlpha(1)

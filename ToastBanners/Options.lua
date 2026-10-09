@@ -146,6 +146,9 @@ general:Dropdown("Divider Style", {
     { label = "Faded Ends", value = "faded",
       tooltip = "The divider Blizzard's settings use under a page title, fading toward each end." },
     { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
+    { label = "Level Up Bar", value = "levelup",
+      tooltip = "The gold bar from Blizzard's own level up toast. It keeps its own gold: the divider line color doesn't "
+        .. "apply." },
 }, Get("presenceDividerStyle"), Set("presenceDividerStyle"),
     "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")
 general:Slider("Divider Opacity", 0.1, 1, 0.05, Get("presenceDividerOpacity"), Set("presenceDividerOpacity"), Percent,
