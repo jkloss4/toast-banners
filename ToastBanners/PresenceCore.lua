@@ -716,7 +716,8 @@ local F, layerA, layerB, curLayer, oldLayer
 
 -- The divider and, with Faded Ends, the lines that pinch it: sized and faded together
 local function setDividerSize(L, w)
-    L.divider:SetSize(w, DIVIDER_H)
+    -- Faded Ends: a 1px middle line, so with the lines above and below it the divider is 3px thick, tapering to 1px
+    L.divider:SetSize(w, L.dividerFaded and 1 or DIVIDER_H)
     L.dividerTop:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
     L.dividerBottom:SetSize(w * DIVIDER_TAPER_WIDTH, 1)
 end
