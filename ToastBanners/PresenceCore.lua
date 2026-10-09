@@ -99,6 +99,10 @@ local DELAY_SUBTITLE  = 0.30
 local DISCOVERY_FADE_AFTER = 0.3
 local DISCOVERY_FADE_DUR   = 0.6
 local DISCOVERY_FADE_OUT   = 0.4  -- it's gone just as the rest of the banner starts its exit
+-- The level up details: up to this many stat rows (health and mana on the left, four stats on the right), and the
+-- step between one row starting to fade in and the next
+local LEVEL_UP_STAT_ROWS   = 4
+local DETAIL_ROW_STEP      = 0.15
 
 local TYPES = {
     LEVEL_UP       = { pri = 4, category = "COMPLETE",   subCategory = "DEFAULT", sz = 48, dur = 5.0 },
@@ -652,24 +656,31 @@ local function CreateLayer(parent)
     L.discoveryText:SetAlpha(0)
     L.discoveryShadow:SetAlpha(0)
 
-    -- Level up details (stat increases, talent points, trainer spells): a block under the subtitle that fades in and
-    -- out with the "Discovered" line
+    -- Level up details (stat increases, talent points, trainer spells): a block under the subtitle. Its rows fade in
+    -- one after another, top to bottom, and out together with the "Discovered" line.
     L.details = CreateFrame("Frame", nil, parent)
     L.details:SetSize(FRAME_WIDTH, 1)
     L.details:SetAlpha(0)
-    L.statsLeft = L.details:CreateFontString(nil, "OVERLAY")
-    L.statsLeft:SetJustifyH("LEFT")
-    L.statsRight = L.details:CreateFontString(nil, "OVERLAY")
-    L.statsRight:SetJustifyH("LEFT")
-    L.talentLine = L.details:CreateFontString(nil, "OVERLAY")
-    L.talentLine:SetJustifyH("CENTER")
-    L.spellsLine = L.details:CreateFontString(nil, "OVERLAY")
-    L.spellsLine:SetJustifyH("CENTER")
-    L.spellsLine:SetWidth(FRAME_WIDTH - 120)
-    -- a font from the start: they're cleared on every banner, and a font string can't take text without one
-    for _, fs in ipairs({ L.statsLeft, L.statsRight, L.talentLine, L.spellsLine }) do
+    local function line(justify)
+        local fs = L.details:CreateFontString(nil, "OVERLAY")
+        fs:SetJustifyH(justify)
+        -- a font from the start: they're cleared on every banner, and a font string can't take text without one
         SetSafeFont(fs, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
+        return fs
     end
+    L.statLeft, L.statRight = {}, {}
+    for row = 1, LEVEL_UP_STAT_ROWS do
+        L.statLeft[row], L.statRight[row] = line("LEFT"), line("LEFT")
+    end
+    L.talentLine = line("CENTER")
+    L.spellsLine = line("CENTER")
+    L.spellsLine:SetWidth(FRAME_WIDTH - 120)
+    L.detailLines = { L.talentLine, L.spellsLine }
+    for row = 1, LEVEL_UP_STAT_ROWS do
+        table.insert(L.detailLines, L.statLeft[row])
+        table.insert(L.detailLines, L.statRight[row])
+    end
+    L.detailRows = {} -- the shown rows, top to bottom, each a list of its font strings
 
     LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
     LockDirectFont(L.titleText,       GetPresenceTitleFont)
@@ -893,28 +904,52 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     local details = typeName == "LEVEL_UP" and opts.levelDetails or nil
     layer.hasDetails = false
     layer.details:SetAlpha(0)
-    for _, fs in ipairs({ layer.statsLeft, layer.statsRight, layer.talentLine, layer.spellsLine }) do
+    wipe(layer.detailRows)
+    for _, fs in ipairs(layer.detailLines) do
         fs:SetText("")
+        fs:SetAlpha(0)
     end
     if details then
         local path, size, outline = getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline()
         local r, g, b = layer.subText:GetTextColor()
         local green = GREEN_FONT_COLOR or CreateColor(0.1, 1, 0.1)
-        for _, fs in ipairs({ layer.statsLeft, layer.statsRight, layer.talentLine, layer.spellsLine }) do
+        for _, fs in ipairs(layer.detailLines) do
             SetSafeFont(fs, path, size, outline)
             fs:SetTextColor(r, g, b, 1)
-            fs:SetSpacing(4)
         end
-        local function column(rows)
-            local lines = {}
-            for _, row in ipairs(rows or {}) do
-                local total = row[2] and (" " .. row[2]) or ""
-                lines[#lines + 1] = row[1] .. ":" .. total .. " " .. green:WrapTextInColorCode("+" .. row[3])
+        local function stat(row)
+            local total = row[2] and (" " .. row[2]) or ""
+            return row[1] .. ":" .. total .. " " .. green:WrapTextInColorCode("+" .. row[3])
+        end
+        local left, right = details.left or {}, details.right or {}
+        local rows = math.min(math.max(#left, #right), LEVEL_UP_STAT_ROWS)
+
+        -- Stats in two left-aligned columns either side of the middle (one column, centered, when only one has
+        -- anything), a row of each at a time; then the talent and spells lines, each under the last
+        local leftWidth = 0
+        for row = 1, rows do
+            layer.statLeft[row]:SetText(left[row] and stat(left[row]) or "")
+            layer.statRight[row]:SetText(right[row] and stat(right[row]) or "")
+            leftWidth = math.max(leftWidth, layer.statLeft[row]:GetStringWidth())
+        end
+        local both = #left > 0 and #right > 0
+        local y = 0
+        for row = 1, rows do
+            local l, rt = layer.statLeft[row], layer.statRight[row]
+            l:ClearAllPoints()
+            rt:ClearAllPoints()
+            if both then
+                l:SetPoint("TOPLEFT", layer.details, "TOP", -16 - leftWidth, -y)
+                rt:SetPoint("TOPLEFT", layer.details, "TOP", 16, -y)
+            else
+                l:SetPoint("TOP", layer.details, "TOP", 0, -y)
+                rt:SetPoint("TOP", layer.details, "TOP", 0, -y)
             end
-            return table.concat(lines, "\n")
+            layer.detailRows[#layer.detailRows + 1] = { l, rt }
+            y = y + math.max(l:GetStringHeight(), rt:GetStringHeight()) + 4
         end
-        layer.statsLeft:SetText(column(details.left))
-        layer.statsRight:SetText(column(details.right))
+        if rows > 0 then y = y + 4 end
+
         if details.talents and details.talents > 0 then
             layer.talentLine:SetText(details.talents == 1 and "1 Talent Point is now available."
                 or (details.talents .. " Talent Points are now available."))
@@ -922,28 +957,16 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
         if details.spells and #details.spells > 0 then
             layer.spellsLine:SetText("New at your trainer: " .. table.concat(details.spells, ", "))
         end
-
-        -- Stats in two columns either side of the middle, then the talent and spells lines, each under the last
-        local y = 0
-        local hasLeft, hasRight = layer.statsLeft:GetText() ~= "", layer.statsRight:GetText() ~= ""
-        layer.statsLeft:ClearAllPoints()
-        layer.statsRight:ClearAllPoints()
-        if hasLeft and hasRight then
-            layer.statsLeft:SetPoint("TOPRIGHT", layer.details, "TOP", -16, 0)
-            layer.statsRight:SetPoint("TOPLEFT", layer.details, "TOP", 16, 0)
-        else
-            layer.statsLeft:SetPoint("TOP", layer.details, "TOP", 0, 0)
-            layer.statsRight:SetPoint("TOP", layer.details, "TOP", 0, 0)
-        end
-        if hasLeft or hasRight then
-            y = math.max(layer.statsLeft:GetStringHeight(), layer.statsRight:GetStringHeight()) + 8
-        end
         for _, fs in ipairs({ layer.talentLine, layer.spellsLine }) do
             fs:ClearAllPoints()
             fs:SetPoint("TOP", layer.details, "TOP", 0, -y)
-            if fs:GetText() ~= "" then y = y + fs:GetStringHeight() + 6 end
+            if fs:GetText() ~= "" then
+                layer.detailRows[#layer.detailRows + 1] = { fs }
+                y = y + fs:GetStringHeight() + 6
+            end
         end
-        layer.hasDetails = y > 0
+        layer.hasDetails = #layer.detailRows > 0
+        layer.details:SetAlpha(layer.hasDetails and 1 or 0) -- the rows fade themselves
 
         -- under the subtitle's final spot (and the "Discovered" line, if there is one), without the slide
         local below = DIVIDER_Y - DIVIDER_H - subGap - layer.subText:GetStringHeight() - 10
@@ -1025,10 +1048,25 @@ local function discoveryAlpha()
     return t * t * (3 - 2 * t)
 end
 
-local function setDiscoveryAlpha(L, a)
+-- A level up detail row's fade in: like the "Discovered" line's, each row DETAIL_ROW_STEP after the one above
+local function detailRowAlpha(row)
+    if cachedEntranceDur <= 0 then return 1 end
+    local startAt = math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom) + (row - 1) * DETAIL_ROW_STEP
+    local t = math.max(0, math.min(1, (discoveryClock - startAt) / DISCOVERY_FADE_DUR))
+    return t * t * (3 - 2 * t)
+end
+
+-- a: the "Discovered" line's alpha. out: how far the fade out before the exit has gone (1 = not started); the level
+-- up detail rows fade in one by one and out together.
+local function setDiscoveryAlpha(L, a, out)
     L.discoveryText:SetAlpha(a)
     L.discoveryShadow:SetAlpha(a * 0.8)
-    if L.hasDetails then L.details:SetAlpha(a) end -- the level up details fade with it
+    if L.hasDetails then
+        for row, lines in ipairs(L.detailRows) do
+            local rowAlpha = math.min(detailRowAlpha(row), out or a)
+            for _, fs in ipairs(lines) do fs:SetAlpha(rowAlpha) end
+        end
+    end
 end
 
 -- Blizzard's discovery message can come seconds after the banner starts (the server checks exploration every few
@@ -1040,6 +1078,7 @@ local function keepDiscoveryShown()
     if cachedEntranceDur > 0 then
         local startAt = math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom)
         need = math.max(0, startAt - discoveryClock) + DISCOVERY_FADE_DUR + DISCOVERY_MIN_SHOWN + DISCOVERY_FADE_OUT
+        if curLayer.hasDetails then need = need + (#curLayer.detailRows - 1) * DETAIL_ROW_STEP end -- the cascade
     end
     local left -- time until the exit starts
     if anim.phase == "hold" then
@@ -1096,7 +1135,7 @@ local function updateExit()
     setSubOffset(L, e * (-10))
 
     if cachedHasDiscovery then
-        setDiscoveryAlpha(L, 0) -- faded out by the end of the hold
+        setDiscoveryAlpha(L, 0, 0) -- faded out by the end of the hold
     end
 end
 
@@ -1168,11 +1207,11 @@ local function PresenceOnUpdate(_, dt)
     if anim.phase ~= "exit" then
         discoveryClock = discoveryClock + dt
         if cachedHasDiscovery then
-            local a = discoveryAlpha()
+            local out = 1
             if anim.phase == "hold" and cachedEntranceDur > 0 then -- out over the end of the hold, before the exit
-                a = math.min(a, math.max(0, (anim.holdDur - anim.elapsed) / DISCOVERY_FADE_OUT))
+                out = math.max(0, math.min(1, (anim.holdDur - anim.elapsed) / DISCOVERY_FADE_OUT))
             end
-            setDiscoveryAlpha(curLayer, a)
+            setDiscoveryAlpha(curLayer, math.min(discoveryAlpha(), out), out)
         end
     end
 
@@ -1870,6 +1909,9 @@ local function DrawPreviewWindow()
     layer.details:ClearAllPoints()
     layer.details:SetPoint("TOP", hasDiscovery and layer.discoveryText or layer.subText, "BOTTOM", 0, -10)
     layer.details:SetAlpha(layer.hasDetails and 1 or 0)
+    for _, lines in ipairs(layer.detailRows) do
+        for _, fs in ipairs(lines) do fs:SetAlpha(1) end
+    end
 
     -- at the banners' own scale, as large as fits on screen
     local scale = math.min(getFrameScale(), (UIParent:GetWidth() - 80) / PREVIEW_W, (UIParent:GetHeight() - 120) / PREVIEW_H)
