@@ -636,6 +636,14 @@ local function CreateLayer(parent)
     L.divider:SetPoint("TOP", 0, -65)
     L.divider:SetColorTexture(1, 1, 1, 1)
     L.divider:SetAlpha(0)
+    -- Faded Ends: Blizzard's settings divider is strongest at the left and trails off to the right (it sits under a
+    -- left-aligned title), so it's drawn as two halves from its right half, the left one mirrored: even both ways
+    L.fadeL = parent:CreateTexture(nil, "ARTWORK")
+    L.fadeL:SetPoint("RIGHT", L.divider, "CENTER")
+    L.fadeR = parent:CreateTexture(nil, "ARTWORK")
+    L.fadeR:SetPoint("LEFT", L.divider, "CENTER")
+    L.fadeL:SetAlpha(0)
+    L.fadeR:SetAlpha(0)
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
     SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
@@ -703,13 +711,17 @@ local F, layerA, layerB, curLayer, oldLayer
 
 local function setDividerSize(L, w)
     L.divider:SetSize(w, DIVIDER_H)
+    L.fadeL:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
+    L.fadeR:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
 end
 
 -- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
 local function setDividerAlpha(L, a)
     local opacity = addon.GetDB and tonumber(addon.GetDB("presenceDividerOpacity", 0.5)) or 0.5
     a = a * math.max(0, math.min(1, opacity))
-    L.divider:SetAlpha(a)
+    L.divider:SetAlpha(L.dividerFaded and 0 or a)
+    L.fadeL:SetAlpha(L.dividerFaded and a or 0)
+    L.fadeR:SetAlpha(L.dividerFaded and a or 0)
 end
 
 local anim
@@ -834,13 +846,20 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
     -- Divider Style: Blizzard's settings divider (fading toward each end) or a solid line, tinted to the line color
-    if addon.GetDB("presenceDividerStyle", "faded") == "faded" and C_Texture and C_Texture.GetAtlasInfo
-        and C_Texture.GetAtlasInfo("Options_HorizontalDivider") then
-        layer.divider:SetAtlas("Options_HorizontalDivider")
-    else
-        layer.divider:SetColorTexture(1, 1, 1, 1)
+    local atlas = addon.GetDB("presenceDividerStyle", "faded") == "faded" and C_Texture and C_Texture.GetAtlasInfo
+        and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
+    layer.dividerFaded = atlas and (atlas.file or atlas.filename) and true or false
+    if layer.dividerFaded then
+        local l, r, t, b = atlas.leftTexCoord, atlas.rightTexCoord, atlas.topTexCoord, atlas.bottomTexCoord
+        local mid = (l + r) / 2
+        layer.fadeR:SetTexture(atlas.file or atlas.filename)
+        layer.fadeR:SetTexCoord(mid, r, t, b)
+        layer.fadeL:SetTexture(atlas.file or atlas.filename)
+        layer.fadeL:SetTexCoord(r, mid, t, b) -- mirrored
     end
-    layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
+    for _, part in ipairs({ layer.divider, layer.fadeL, layer.fadeR }) do
+        part:SetVertexColor(lc[1], lc[2], lc[3])
+    end
 
     if compactLayout then
         layer.titleText:SetText("")
