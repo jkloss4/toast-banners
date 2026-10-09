@@ -637,6 +637,9 @@ local function CreateLayer(parent)
     L.divider:SetPoint("TOP", 0, -65)
     L.divider:SetColorTexture(1, 1, 1, 1)
     L.divider:SetAlpha(0)
+    -- its edges on the screen's pixel grid, so a thin line stays sharp
+    if L.divider.SetSnapToPixelGrid then L.divider:SetSnapToPixelGrid(true) end
+    if L.divider.SetTexelSnappingBias then L.divider:SetTexelSnappingBias(0) end
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
     SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
@@ -709,7 +712,12 @@ local function getDividerWidth()
 end
 
 local function setDividerSize(L, w)
-    L.divider:SetSize(w, L.dividerH or DIVIDER_H)
+    -- the thickness in whole screen pixels (at least one), so the line is crisp rather than blurred across two rows
+    local h = L.dividerH or DIVIDER_H
+    if PixelUtil and PixelUtil.GetNearestPixelSize then
+        h = PixelUtil.GetNearestPixelSize(h, L.divider:GetEffectiveScale(), 1)
+    end
+    L.divider:SetSize(w, h)
 end
 
 -- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
@@ -843,7 +851,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- Divider Style: a solid line, or faded ends (Media\DividerFaded: white, solid through the middle and fading over
     -- the last 30% at each end, so the line color tints it exactly), in the line color
     -- General > Display > Divider Thickness, in any style
-    layer.dividerH = math.max(1, math.min(16, tonumber(addon.GetDB("presenceDividerThickness", DIVIDER_H)) or DIVIDER_H))
+    layer.dividerH = math.max(0.5, math.min(16, tonumber(addon.GetDB("presenceDividerThickness", DIVIDER_H)) or DIVIDER_H))
     if addon.GetDB("presenceDividerStyle", "faded") == "solid" then
         layer.divider:SetColorTexture(1, 1, 1, 1)
     else
