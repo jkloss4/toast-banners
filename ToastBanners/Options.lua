@@ -145,7 +145,7 @@ general:Slider("Quest Icon Size", 16, 36, 1, Get("presenceIconSize"), Set("prese
 general:Dropdown("Divider Style", {
     { label = "Solid Line", value = "solid", tooltip = "An even line the full width." },
     { label = "Faded Ends", value = "faded",
-      tooltip = "The divider Blizzard's settings use under a page title, fading toward each end." },
+      tooltip = "Solid through the middle, fading out toward each end." },
 }, function() return GetDB("presenceDividerStyle", "faded") == "solid" and "solid" or "faded" end,
     Set("presenceDividerStyle"),
     "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")

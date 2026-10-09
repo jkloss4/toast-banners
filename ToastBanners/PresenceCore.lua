@@ -80,6 +80,7 @@ local FRAME_HEIGHT = 250
 local FRAME_Y_DEF  = -180
 local DIVIDER_W    = 400
 local DIVIDER_H    = 2
+local DIVIDER_FADED_TEXTURE = "Interface\\AddOns\\ToastBanners\\Media\\DividerFaded"
 local DIVIDER_Y    = -65  -- top of the divider line, from the top of the banner
 local MAX_QUEUE    = 8
 
@@ -636,14 +637,6 @@ local function CreateLayer(parent)
     L.divider:SetPoint("TOP", 0, -65)
     L.divider:SetColorTexture(1, 1, 1, 1)
     L.divider:SetAlpha(0)
-    -- Faded Ends: Blizzard's settings divider is strongest at the left and trails off to the right (it sits under a
-    -- left-aligned title), so it's drawn as two halves from its right half, the left one mirrored: even both ways
-    L.fadeL = parent:CreateTexture(nil, "ARTWORK")
-    L.fadeL:SetPoint("RIGHT", L.divider, "CENTER")
-    L.fadeR = parent:CreateTexture(nil, "ARTWORK")
-    L.fadeR:SetPoint("LEFT", L.divider, "CENTER")
-    L.fadeL:SetAlpha(0)
-    L.fadeR:SetAlpha(0)
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
     SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
@@ -717,17 +710,13 @@ end
 
 local function setDividerSize(L, w)
     L.divider:SetSize(w, L.dividerH or DIVIDER_H)
-    L.fadeL:SetSize(math.max(w / 2, 0.01), L.dividerH or DIVIDER_H)
-    L.fadeR:SetSize(math.max(w / 2, 0.01), L.dividerH or DIVIDER_H)
 end
 
 -- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
 local function setDividerAlpha(L, a)
     local opacity = addon.GetDB and tonumber(addon.GetDB("presenceDividerOpacity", 0.5)) or 0.5
     a = a * math.max(0, math.min(1, opacity))
-    L.divider:SetAlpha(L.dividerFaded and 0 or a)
-    L.fadeL:SetAlpha(L.dividerFaded and a or 0)
-    L.fadeR:SetAlpha(L.dividerFaded and a or 0)
+    L.divider:SetAlpha(a)
 end
 
 local anim
@@ -851,25 +840,16 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    -- Divider Style: a solid line, or Blizzard's settings divider (fading toward each end), tinted to the line color
-    local style = addon.GetDB("presenceDividerStyle", "faded") == "solid" and "solid" or "faded"
+    -- Divider Style: a solid line, or faded ends (Media\DividerFaded: white, solid through the middle and fading over
+    -- the last 30% at each end, so the line color tints it exactly), in the line color
     -- General > Display > Divider Thickness, in any style
     layer.dividerH = math.max(1, math.min(16, tonumber(addon.GetDB("presenceDividerThickness", DIVIDER_H)) or DIVIDER_H))
-    layer.divider:SetColorTexture(1, 1, 1, 1)
-    local atlas = style == "faded" and C_Texture and C_Texture.GetAtlasInfo
-        and C_Texture.GetAtlasInfo("Options_HorizontalDivider")
-    layer.dividerFaded = atlas and (atlas.file or atlas.filename) and true or false
-    if layer.dividerFaded then
-        local l, r, t, b = atlas.leftTexCoord, atlas.rightTexCoord, atlas.topTexCoord, atlas.bottomTexCoord
-        local mid = (l + r) / 2
-        layer.fadeR:SetTexture(atlas.file or atlas.filename)
-        layer.fadeR:SetTexCoord(mid, r, t, b)
-        layer.fadeL:SetTexture(atlas.file or atlas.filename)
-        layer.fadeL:SetTexCoord(r, mid, t, b) -- mirrored
+    if addon.GetDB("presenceDividerStyle", "faded") == "solid" then
+        layer.divider:SetColorTexture(1, 1, 1, 1)
+    else
+        layer.divider:SetTexture(DIVIDER_FADED_TEXTURE)
     end
-    for _, part in ipairs({ layer.divider, layer.fadeL, layer.fadeR }) do
-        part:SetVertexColor(lc[1], lc[2], lc[3])
-    end
+    layer.divider:SetVertexColor(lc[1], lc[2], lc[3])
 
     if compactLayout then
         layer.titleText:SetText("")
