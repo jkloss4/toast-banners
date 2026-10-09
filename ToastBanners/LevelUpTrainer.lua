@@ -57,40 +57,21 @@ local function ReadTrainer()
     end
 end
 
--- The list only changes after the game rebuilds it (TRAINER_UPDATE) once a filter is turned on, so it's read then;
--- the filters you had are put back afterwards
-local turnedOn   -- the filters turned on for the read, while waiting for the list to rebuild
-local fallback   -- reads anyway if the rebuild never comes
-
-local function RestoreFilters()
-    for filter in pairs(turnedOn or {}) do SetTrainerServiceTypeFilter(filter, false) end
-    turnedOn = nil
-    if fallback then fallback:Cancel() end
-    fallback = nil
-end
-
-local function ReadAndRestore()
-    ReadTrainer()
-    RestoreFilters()
-end
-
 local function StartRead()
     if addon.IS_RETAIL or not (GetNumTrainerServices and GetTrainerServiceInfo and IsClassTrainer()) then return end
     local filters = {}
     for _, filter in ipairs(FILTERS) do filters[#filters + 1] = filter .. "=" .. tostring(GetTrainerServiceTypeFilter(filter)) end
     addon.Trace("trainer opened: %d in the list, filters %s", GetNumTrainerServices(), table.concat(filters, " "))
-    turnedOn = {}
+    -- the list changes as soon as a filter does: every filter on, read, then the filters you had put back
+    local turnedOn = {}
     for _, filter in ipairs(FILTERS) do
         if not GetTrainerServiceTypeFilter(filter) then
-            turnedOn[filter] = true
+            turnedOn[#turnedOn + 1] = filter
             SetTrainerServiceTypeFilter(filter, true)
         end
     end
-    if next(turnedOn) then
-        fallback = C_Timer.NewTimer(1, ReadAndRestore)
-    else
-        ReadAndRestore() -- every filter was already on: the list is complete
-    end
+    ReadTrainer()
+    for _, filter in ipairs(turnedOn) do SetTrainerServiceTypeFilter(filter, false) end
 end
 
 -- A spell a trainer lists needs these first; a talent or earlier rank you don't have keeps it off the banner
@@ -123,20 +104,7 @@ end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("TRAINER_SHOW")
-events:RegisterEvent("TRAINER_UPDATE")
-events:RegisterEvent("TRAINER_CLOSED")
-events:SetScript("OnEvent", function(_, event)
-    if event == "TRAINER_SHOW" then
-        -- the list fills in just after the window opens
-        C_Timer.After(0.2, StartRead)
-    elseif event == "TRAINER_UPDATE" then
-        -- the rebuilt list, with every filter on: read it on the next frame, once it's all there
-        if turnedOn and fallback then
-            fallback:Cancel()
-            fallback = nil
-            C_Timer.After(0, ReadAndRestore)
-        end
-    elseif turnedOn then
-        RestoreFilters() -- closed before the read
-    end
+events:SetScript("OnEvent", function()
+    -- the list fills in just after the window opens
+    C_Timer.After(0.2, StartRead)
 end)
