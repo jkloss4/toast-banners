@@ -103,6 +103,7 @@ local DISCOVERY_FADE_OUT   = 0.4  -- it's gone just as the rest of the banner st
 -- step between one row starting to fade in and the next
 local LEVEL_UP_STAT_ROWS   = 4
 local DETAIL_ROW_STEP      = 0.15
+local DETAIL_FADE_DUR      = 0.9  -- each row's fade in, a little slower than the "Discovered" line's
 
 local TYPES = {
     LEVEL_UP       = { pri = 4, category = "COMPLETE",   subCategory = "DEFAULT", sz = 48, dur = 5.0 },
@@ -1052,7 +1053,7 @@ end
 local function detailRowAlpha(row)
     if cachedEntranceDur <= 0 then return 1 end
     local startAt = math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom) + (row - 1) * DETAIL_ROW_STEP
-    local t = math.max(0, math.min(1, (discoveryClock - startAt) / DISCOVERY_FADE_DUR))
+    local t = math.max(0, math.min(1, (discoveryClock - startAt) / DETAIL_FADE_DUR))
     return t * t * (3 - 2 * t)
 end
 
@@ -1078,7 +1079,9 @@ local function keepDiscoveryShown()
     if cachedEntranceDur > 0 then
         local startAt = math.max(cachedEntranceDur + DISCOVERY_FADE_AFTER, discoveryFrom)
         need = math.max(0, startAt - discoveryClock) + DISCOVERY_FADE_DUR + DISCOVERY_MIN_SHOWN + DISCOVERY_FADE_OUT
-        if curLayer.hasDetails then need = need + (#curLayer.detailRows - 1) * DETAIL_ROW_STEP end -- the cascade
+        if curLayer.hasDetails then -- the cascade, and its slower fade
+            need = need + (#curLayer.detailRows - 1) * DETAIL_ROW_STEP + math.max(0, DETAIL_FADE_DUR - DISCOVERY_FADE_DUR)
+        end
     end
     local left -- time until the exit starts
     if anim.phase == "hold" then
