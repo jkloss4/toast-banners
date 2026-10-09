@@ -711,8 +711,8 @@ local F, layerA, layerB, curLayer, oldLayer
 
 local function setDividerSize(L, w)
     L.divider:SetSize(w, L.dividerH or DIVIDER_H)
-    L.fadeL:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
-    L.fadeR:SetSize(math.max(w / 2, 0.01), DIVIDER_H)
+    L.fadeL:SetSize(math.max(w / 2, 0.01), L.dividerH or DIVIDER_H)
+    L.fadeR:SetSize(math.max(w / 2, 0.01), L.dividerH or DIVIDER_H)
 end
 
 -- a: how far the divider has faded in (0-1); General > Display > Divider Opacity sets how opaque it is when it has
@@ -846,10 +846,11 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
     -- Divider Style: Blizzard's settings divider (fading toward each end) or a solid line, tinted to the line color;
-    -- or the gold bar from Blizzard's level up toast, at its own height and in its own gold (a tint muddies it)
+    -- or the gold bar from Blizzard's level up toast, in its own gold (a tint muddies it)
     local style = addon.GetDB("presenceDividerStyle", "faded")
     local bar = style == "levelup" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("levelup-bar-gold")
-    layer.dividerH = bar and math.max(DIVIDER_H, math.min(24, bar.height or DIVIDER_H)) or DIVIDER_H
+    -- General > Display > Divider Thickness, in any style
+    layer.dividerH = math.max(1, math.min(16, tonumber(addon.GetDB("presenceDividerThickness", DIVIDER_H)) or DIVIDER_H))
     if bar then
         layer.divider:SetAtlas("levelup-bar-gold")
     else
@@ -930,7 +931,7 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts)
     -- line grows from nothing as they move, and rounding its edges would shift anything attached to it sideways.
     layer.titleGap = getTitleGap(variant)
     layer.divider:ClearAllPoints()
-    -- a taller divider (the level up bar) is centered on the line's spot, so the title and subtitle stay put
+    -- a thicker divider is centered on the 2px line's spot, so the title and subtitle stay put
     layer.divider:SetPoint("TOP", 0, DIVIDER_Y + ((layer.dividerH or DIVIDER_H) - DIVIDER_H) / 2)
     layer.titleText:ClearAllPoints()
     layer.titleText:SetPoint("BOTTOM", layer.titleText:GetParent(), "TOP", 0, DIVIDER_Y + layer.titleGap + 20)

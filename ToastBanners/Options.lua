@@ -152,7 +152,10 @@ general:Dropdown("Divider Style", {
 }, Get("presenceDividerStyle"), Set("presenceDividerStyle"),
     "The line between a banner's main title and subtitle. Either takes the banner's divider line color.")
 general:Slider("Divider Opacity", 0.1, 1, 0.05, Get("presenceDividerOpacity"), Set("presenceDividerOpacity"), Percent,
-    "How opaque the divider is, in either style.", { indent = true })
+    "How opaque the divider is, in any style.", { indent = true })
+general:Slider("Divider Thickness", 1, 16, 1, Get("presenceDividerThickness"), Set("presenceDividerThickness"), Pixels,
+    "How thick the divider is, in any style. It stays centered where it is, so the title and subtitle don't move.",
+    { indent = true })
 general:Slider("Vertical Position", -300, 0, 1, Get("presenceFrameY"), Set("presenceFrameY"), nil,
     "How far down from the top of the screen the banners are shown.")
 general:Slider("Scale", 0.5, 2, 0.1, Get("presenceFrameScale"), Set("presenceFrameScale"), Multiplier,
