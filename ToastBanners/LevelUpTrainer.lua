@@ -44,7 +44,17 @@ local function ReadTrainer()
             count = count + 1
         end
     end
-    addon.Trace("trainer read: %d spells for %s", count, class)
+    if addon.Log.isEnabled() then
+        local kinds = {}
+        for index = 1, GetNumTrainerServices() do
+            local _, serviceType = GetTrainerServiceInfo(index)
+            kinds[tostring(serviceType)] = (kinds[tostring(serviceType)] or 0) + 1
+        end
+        local list = {}
+        for kind, n in pairs(kinds) do list[#list + 1] = kind .. "=" .. n end
+        addon.Trace("trainer read: %d spells for %s (list has %d: %s)", count, class, GetNumTrainerServices(),
+            table.concat(list, ", "))
+    end
 end
 
 -- The list only changes after the game rebuilds it (TRAINER_UPDATE) once a filter is turned on, so it's read then;
@@ -66,6 +76,9 @@ end
 
 local function StartRead()
     if addon.IS_RETAIL or not (GetNumTrainerServices and GetTrainerServiceInfo and IsClassTrainer()) then return end
+    local filters = {}
+    for _, filter in ipairs(FILTERS) do filters[#filters + 1] = filter .. "=" .. tostring(GetTrainerServiceTypeFilter(filter)) end
+    addon.Trace("trainer opened: %d in the list, filters %s", GetNumTrainerServices(), table.concat(filters, " "))
     turnedOn = {}
     for _, filter in ipairs(FILTERS) do
         if not GetTrainerServiceTypeFilter(filter) then
