@@ -752,7 +752,7 @@ local lastSubOffsetY   = nil
 local lastDividerWidth = nil
 
 local QUEST_UPDATE_DEDUPE_TIME = 1.5
-local lastQuestUpdateNorm, lastQuestUpdateTime
+local lastQuestUpdateNorm, lastQuestUpdateTime, lastQuestUpdateTitle -- the last progress shown, and its quest
 
 -- ============================================================================
 -- LIVE DEBUG LOG  (via addon.Log + generic panel from LoggerPanel.lua)
@@ -1430,6 +1430,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
 
     if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
         lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(subtitle)
+        lastQuestUpdateTitle = title
         lastQuestUpdateTime = GetTime()
     end
 
@@ -1572,13 +1573,15 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
     -- Dedupe: skip QUEST_UPDATE if same normalized text shown recently
     if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
         local norm = addon.Presence.NormalizeQuestUpdateText(subtitle)
-        if norm and norm ~= "" and lastQuestUpdateNorm == norm and (GetTime() - (lastQuestUpdateTime or 0)) < QUEST_UPDATE_DEDUPE_TIME then
+        if norm and norm ~= "" and lastQuestUpdateNorm == norm and lastQuestUpdateTitle == title and (GetTime() - (lastQuestUpdateTime or 0)) < QUEST_UPDATE_DEDUPE_TIME then
             return
         end
     end
 
     if active then
-        if cfg.liveUpdate and activeTypeName == typeName
+        -- Progress for the banner on screen (same quest, scenario or achievement: same title) updates its line in
+        -- place; progress for another one gets its own banner
+        if cfg.liveUpdate and activeTypeName == typeName and activeTitle == title
             and (anim.phase == "entrance" or anim.phase == "hold") then
             local newSub = subtitle or ""
             local curSub = (curLayer and curLayer.subText and curLayer.subText:GetText()) or ""
@@ -1589,9 +1592,11 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                     subtitleTransition = { phase = "fadeOut", elapsed = 0, newText = newSub }
                 end
                 if anim.phase == "hold" then anim.elapsed = 0 end
+                activeSubtitle = newSub
                 if typeName == "QUEST_UPDATE" and addon.Presence.NormalizeQuestUpdateText then
                     lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(newSub)
                     lastQuestUpdateTime = GetTime()
+                    lastQuestUpdateTitle = title
                 end
                 if IsDebugLive() then
                     local src = (opts.source and (" via %s"):format(opts.source)) or ""
@@ -1625,10 +1630,10 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
             end
 
             if cfg.replaceInQueue then
-                -- Replace the last same-type entry in the queue instead of appending.
-                -- This keeps the queue small during rapid same-type bursts (e.g. mob kills).
+                -- Replace the last waiting entry for the same quest (same type and title) instead of appending.
+                -- This keeps the queue small during rapid bursts (e.g. mob kills) without losing another quest's.
                 for i = #queue, 1, -1 do
-                    if queue[i][1] == typeName then
+                    if queue[i][1] == typeName and queue[i][2] == title then
                         queue[i] = { typeName, title, subtitle, opts }
                         if IsDebugLive() then
                             local src = (opts.source and (" via %s"):format(opts.source)) or ""
