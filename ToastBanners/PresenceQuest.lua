@@ -517,7 +517,16 @@ end
 -- Handle QUEST_TURNED_IN. Shows quest complete notification.
 -- @param questID number
 local function Quest_OnQuestTurnedIn(questID)
-    if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then return end
+    if addon.Log.isEnabled() then
+        addon.Trace("QUEST_TURNED_IN questID=%s title=%s task=%s worldQuest=%s", tostring(questID),
+            tostring(C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(questID)),
+            tostring(C_QuestLog and C_QuestLog.IsQuestTask and C_QuestLog.IsQuestTask(questID)),
+            tostring(addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)))
+    end
+    if addon.Presence and addon.Presence.IsFlightSuppressed and addon.Presence.IsFlightSuppressed() then
+        addon.Trace("turn-in banner skipped: in flight")
+        return
+    end
     local L = addon.L or {}
     local opts = (questID and { questID = questID }) or {}
     local questName = "Objective"
@@ -525,7 +534,10 @@ local function Quest_OnQuestTurnedIn(questID)
         if C_QuestLog.GetTitleForQuestID then
             questName = Strip(C_QuestLog.GetTitleForQuestID(questID) or questName)
         end
-        if IsDNTQuest(questName) then return end
+        if IsDNTQuest(questName) then
+            addon.Trace("turn-in banner skipped: [DNT] quest")
+            return
+        end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)) then return end
             if addon.GetDB and addon.GetDB("presenceWorldQuestSound", true) and SOUNDKIT and SOUNDKIT.UI_WORLDQUEST_COMPLETE then
@@ -539,11 +551,17 @@ local function Quest_OnQuestTurnedIn(questID)
     -- the quest's state goes whether or not a banner shows
     DisposeQuestState(questID)
     if IsBonusObjective(questID) then
-        if not addon.Presence.IsTypeEnabledForType("BONUS_OBJECTIVE") then return end
+        if not addon.Presence.IsTypeEnabledForType("BONUS_OBJECTIVE") then
+            addon.Trace("turn-in banner skipped: bonus objective, and Bonus Objective banners are off")
+            return
+        end
         addon.Presence.QueueOrPlay("BONUS_OBJECTIVE", L["BONUS_OBJECTIVE_COMPLETE"], questName, opts)
         return
     end
-    if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)) then return end
+    if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)) then
+        addon.Trace("turn-in banner skipped: Quest Complete banners are off")
+        return
+    end
     addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["PRESENCE_QUEST_COMPLETE"], questName, opts)
 end
 

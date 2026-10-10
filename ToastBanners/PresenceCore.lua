@@ -1284,8 +1284,7 @@ local function PresenceOnUpdate(_, dt)
             finalizeEntrance()
         end
         if anim.elapsed >= cachedEntranceDur then
-            addon.Trace("entrance done: %.2fs real time, %d frames", GetTime() - entranceStartedAt, entranceFrames)
-            finalizeEntrance()
+            addon.Trace("entrance done: %.2fs real time, %d frames", GetTime() - entranceStartedAt, entranceFrames)            finalizeEntrance()
             anim.phase   = "hold"
             anim.elapsed = 0
         end
@@ -1618,8 +1617,12 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
         end
 
         if #queue < MAX_QUEUE then
-            -- Exact-duplicate guard: skip if same type+title is already active
-            if activeTitle == title and activeTypeName == typeName and not opts.replay then return end
+            -- Exact-duplicate guard: skip if the same banner is already active. The subtitle counts: for quest
+            -- banners the title is the same for every quest ("QUEST COMPLETE") and the quest's name is the subtitle
+            if activeTitle == title and activeSubtitle == subtitle and activeTypeName == typeName and not opts.replay then
+                addon.Trace("skipped %s \"%s\" | \"%s\": already on screen", typeName, tostring(title), tostring(subtitle))
+                return
+            end
 
             if cfg.replaceInQueue then
                 -- Replace the last same-type entry in the queue instead of appending.
