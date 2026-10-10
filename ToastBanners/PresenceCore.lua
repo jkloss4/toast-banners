@@ -1616,6 +1616,15 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
                 addon.Log.debug("presence",("Preempt %s (pri=%d) over %s (pri=%d)%s"):format(typeName, cfg.pri, activeTypeName or "?", active.pri, src))
             end
+            -- The banner it cuts off plays again afterwards, unless it had mostly been seen (past half its hold),
+            -- so a quest complete isn't lost to the level up right after it
+            local cutShort = anim.phase == "entrance" or anim.phase == "crossfade"
+                or (anim.phase == "hold" and anim.elapsed < (anim.holdDur or 0) / 2)
+            if cutShort and activeTypeName and not (activeOpts and activeOpts.preview) and #queue < MAX_QUEUE then
+                addon.Trace("requeued %s \"%s\" | \"%s\" to play after", activeTypeName, tostring(activeTitle),
+                    tostring(activeSubtitle))
+                table.insert(queue, 1, { activeTypeName, activeTitle, activeSubtitle, activeOpts })
+            end
             interruptCurrent()
             PlayCinematic(typeName, title, subtitle, opts)
             return

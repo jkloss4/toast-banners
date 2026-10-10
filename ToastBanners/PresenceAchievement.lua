@@ -234,9 +234,11 @@ local function ExecuteAchievementProgressCheck(pendingIDs, hintsByAchID)
                 local progressText = GetAchievementProgressTextForChange(achID, oldState, newState, hint)
                 if progressText then
                     local now = GetTime()
-                    local isDupe = (lastAchProgressText == progressText and (now - lastAchProgressTime) <= ACHIEVEMENT_PROGRESS_DEDUPE)
+                    -- the same text for another achievement (two "1/10" criteria) isn't a repeat
+                    local progressKey = achID .. "|" .. progressText
+                    local isDupe = (lastAchProgressText == progressKey and (now - lastAchProgressTime) <= ACHIEVEMENT_PROGRESS_DEDUPE)
                     if not isDupe then
-                        lastAchProgressText = progressText
+                        lastAchProgressText = progressKey
                         lastAchProgressTime = now
                         local aOk, _, achName = pcall(GetAchievementInfo, achID)
                         achName = Strip(tostring(achName or ""))
