@@ -1,4 +1,4 @@
-## Interface: 120100, 16001
+## Interface: 120100, 120105, 16001
 ## Title: Toast Banners
 ## Notes: Cinematic on-screen banners for zone changes, quests, scenarios, achievements, boss emotes and level ups. From Horizon Suite's Presence module.
 ## Version: 1.0.0
