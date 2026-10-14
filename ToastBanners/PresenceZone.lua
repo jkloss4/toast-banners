@@ -216,6 +216,8 @@ local function ScheduleZoneNotification(isNewArea)
                 end
             elseif addon.IsInPartyDungeon and addon.IsInPartyDungeon() then
                 opts.category = "DUNGEON"
+            elseif addon.IsInRaidInstance and addon.IsInRaidInstance() then
+                opts.category = "RAID"
             end
             opts.source = "ZONE_CHANGED_NEW_AREA"
             lastSubzoneTitleShown = nil
@@ -227,6 +229,8 @@ local function ScheduleZoneNotification(isNewArea)
             if addon.IsDelveActive and addon.IsDelveActive() then return end
             if addon.IsInPartyDungeon and addon.IsInPartyDungeon() then
                 opts.category = "DUNGEON"
+            elseif addon.IsInRaidInstance and addon.IsInRaidInstance() then
+                opts.category = "RAID"
             end
             opts.source = "ZONE_CHANGED"
 

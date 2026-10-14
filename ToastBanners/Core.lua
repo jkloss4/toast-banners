@@ -109,6 +109,8 @@ addon.DEFAULTS = {
     presenceDiscoverySize          = 16,
     presenceDiscoveryGap           = 5,
     presenceZoneTypeColoring       = false,
+    presenceZoneColorDungeonOn     = true,   -- dungeon zone banners in the Dungeon Zone Color (it was always on)
+    presenceZoneColorRaidOn        = false,
 }
 
 -- Color settings, saved as { r, g, b }
@@ -119,6 +121,8 @@ addon.COLOR_DEFAULTS = {
     presenceZoneColorHostile   = { 1.0, 0.1, 0.1 },
     presenceZoneColorContested = { 1.0, 0.7, 0.0 },
     presenceZoneColorSanctuary = { 0.41, 0.8, 0.94 },
+    presenceZoneColorDungeon   = { 0.64, 0.21, 0.93 }, -- the DUNGEON category color
+    presenceZoneColorRaid      = { 0.85, 0.25, 0.25 }, -- the RAID category color
 }
 
 function addon.GetColorSetting(key)

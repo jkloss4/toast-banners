@@ -15,6 +15,12 @@ function addon.IsInPartyDungeon()
     return ok and instanceType == "party"
 end
 
+-- True when the player is in a raid instance. Guarded.
+function addon.IsInRaidInstance()
+    local ok, _, instanceType = pcall(GetInstanceInfo)
+    return ok and instanceType == "raid"
+end
+
 -- True when the player is in an active Delve (guarded API). WoW: Forever has no Delves, but its
 -- C_PartyInfo.IsDelveInProgress answers true, so only a client with Delves (addon.HAS_DELVES) can be in one.
 function addon.IsDelveActive()

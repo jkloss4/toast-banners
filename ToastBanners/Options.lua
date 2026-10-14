@@ -473,9 +473,20 @@ for _, zoneType in ipairs({ "Friendly", "Hostile", "Contested", "Sanctuary" }) d
           disabledTooltip = function() return not ZoneTypeUsable() and ZONE_TYPE_DISABLED or nil end })
 end
 
+-- Dungeons and raids: their own colors, not part of Color by Zone Type (a dungeon was always in its own color)
+for _, instance in ipairs({ { "Dungeon", "dungeon" }, { "Raid", "raid" } }) do
+    local key = "presenceZoneColor" .. instance[1]
+    colors:CheckboxColorSwatch(instance[1] .. " Zone Color", Get(key .. "On"), Set(key .. "On"), GetColor(key),
+        SetColor(key),
+        "Zone and subzone names inside a " .. instance[2] .. " take this color (ahead of Color by Zone Type). Off, "
+            .. "they're the normal zone color.",
+        { enabled = ZoneTypeUsable, disabledTooltip = ZONE_TYPE_DISABLED })
+end
+
 local COLOR_KEYS = {
     "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested",
-    "presenceZoneColorSanctuary",
+    "presenceZoneColorSanctuary", "presenceZoneColorDungeon", "presenceZoneColorDungeonOn", "presenceZoneColorRaid",
+    "presenceZoneColorRaidOn",
 }
 colors:Spacer(20)
 colors:Button("Reset Colors", function()
