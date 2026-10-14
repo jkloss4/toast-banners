@@ -123,10 +123,14 @@ local function AddPreview(list)
         "The banner Show Preview and Preview Window show.")
 
     -- beside it, the zone type for Zone Entry and Subzone Change
+    -- the banner dropdown moved left, for room between the two
     bannerRow.Control.Dropdown:SetWidth(180)
+    bannerRow.Control:ClearAllPoints()
+    bannerRow.Control:SetPoint("LEFT", bannerRow, "CENTER", -73, 3)
     local zoneDropdown = CreateFrame("DropdownButton", nil, bannerRow, "WowStyle1DropdownTemplate")
     zoneDropdown:SetWidth(130)
-    zoneDropdown:SetPoint("LEFT", bannerRow.Control, "RIGHT", 6, 0)
+    zoneDropdown:SetPoint("LEFT", bannerRow.Control, "RIGHT", 16, 0)
+    zoneDropdown.Text:SetJustifyH("CENTER")
     zoneDropdown:HookScript("OnEnter", function(dropdown)
         Tip:SetOwner(dropdown, "ANCHOR_RIGHT", -10, 0)
         GameTooltip_AddHighlightLine(Tip, "Zone Type")
