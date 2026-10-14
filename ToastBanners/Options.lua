@@ -234,9 +234,9 @@ local SHARED_BANNER_NOTE = "\n\nBlizzard's own banner comes back when both World
 
 -- Each type's row has its banner size beside it (Large, Medium or Small, set up on the Typography tab)
 local SIZE_OPTIONS = {
-    { label = "Large", value = "large", tooltip = "Fonts and spacing from Typography > Large Notifications." },
-    { label = "Medium", value = "medium", tooltip = "Fonts and spacing from Typography > Medium Notifications." },
     { label = "Small", value = "small", tooltip = "Fonts and spacing from Typography > Small Notifications." },
+    { label = "Medium", value = "medium", tooltip = "Fonts and spacing from Typography > Medium Notifications." },
+    { label = "Large", value = "large", tooltip = "Fonts and spacing from Typography > Large Notifications." },
 }
 
 local function TypeRow(label, typeName, get, set, tooltip, opts)
