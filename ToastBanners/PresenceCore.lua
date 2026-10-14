@@ -577,13 +577,12 @@ local function resolveColors(typeName, cfg, opts)
         local sc = getCategoryColor("DEFAULT", { 1, 1, 1 })
         return c, sc
     end
-    -- A zone entry banner in a dungeon or raid: the Dungeon / Raid Zone Color while it's on (ahead of zone-type
-    -- coloring: an instance is the more specific). Subzone banners inside, and zone banners while it's off, take the
-    -- normal colors.
+    -- Zone and subzone banners in a dungeon or raid: the Dungeon / Raid Zone Color while it's on, and the normal zone
+    -- color while it's off (ahead of zone-type coloring: an instance is the more specific)
     local isZone = (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE")
     local instanceColorKey = isZone and ({ DUNGEON = "presenceZoneColorDungeon", RAID = "presenceZoneColorRaid" })[opts.category]
     if instanceColorKey then
-        if typeName == "ZONE_CHANGE" and addon.GetDB(instanceColorKey .. "On", addon.DEFAULTS[instanceColorKey .. "On"]) then
+        if addon.GetDB(instanceColorKey .. "On", addon.DEFAULTS[instanceColorKey .. "On"]) then
             return addon.GetColorSetting(instanceColorKey), getCategoryColor(cfg.subCategory or "DEFAULT", { 1, 1, 1 })
         end
         opts = CopyTable(opts)

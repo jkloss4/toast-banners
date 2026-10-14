@@ -478,8 +478,8 @@ for _, instance in ipairs({ { "Dungeon", "dungeon" }, { "Raid", "raid" } }) do
     local key = "presenceZoneColor" .. instance[1]
     colors:CheckboxColorSwatch(instance[1] .. " Zone Color", Get(key .. "On"), Set(key .. "On"), GetColor(key),
         SetColor(key),
-        "The zone name when you enter a " .. instance[2] .. " takes this color (ahead of Color by Zone Type). "
-            .. "Subzone names inside, and the zone name while this is off, take the normal colors.",
+        "The main title of zone and subzone banners inside a " .. instance[2] .. " takes this color (ahead of Color by "
+            .. "Zone Type). Off, it's the normal color.",
         { enabled = ZoneTypeUsable, disabledTooltip = ZONE_TYPE_DISABLED })
 end
 
