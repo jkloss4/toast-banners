@@ -383,7 +383,7 @@ typography:Dropdown("Discovery Outline", OUTLINES, Get("presenceDiscoveryFontOut
 
 -- Which banners use each size is chosen on the Notifications tab
 local SIZE_NOTE = "\n\nEach notification type's size is set beside it on the Notifications tab."
-for _, key in ipairs({ "Large", "Medium", "Small" }) do
+for _, key in ipairs({ "Small", "Medium", "Large" }) do
     local types = key:lower()
     typography:Header(key .. " Notifications")
     typography:Slider("Main Title Size", 12, 72, 1, Get("presencePrimary" .. key .. "Sz"),
