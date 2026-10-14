@@ -41,9 +41,9 @@ local function Percent(v) return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
 
 local page = Kit.NewPage("Toast Banners", {
     onDefaults = function()
-        local previewType = ToastBannersDB.presencePreviewType
+        local previewType, previewZoneType = ToastBannersDB.presencePreviewType, ToastBannersDB.presencePreviewZoneType
         wipe(ToastBannersDB)
-        ToastBannersDB.presencePreviewType = previewType
+        ToastBannersDB.presencePreviewType, ToastBannersDB.presencePreviewZoneType = previewType, previewZoneType
         addon.ApplySettings()
     end,
 })
@@ -101,13 +101,66 @@ for _, entry in ipairs(PREVIEW_TYPES) do addon.PREVIEW_LABELS[entry[1]] = entry[
 local function PreviewType() return GetDB("presencePreviewType", "ZONE_CHANGE") end
 local Tip = SettingsTooltip or GameTooltip
 
+-- The zone type a zone or subzone banner is previewed as
+local PREVIEW_ZONE_TYPES = {
+    { "current", "Current Zone", "The zone you're in, with its own colors." },
+    { "friendly", "Friendly", "Colored as a friendly zone (with Color by Zone Type on)." },
+    { "hostile", "Hostile", "Colored as a hostile zone (with Color by Zone Type on)." },
+    { "contested", "Contested", "Colored as a contested zone (with Color by Zone Type on)." },
+    { "sanctuary", "Sanctuary", "Colored as a sanctuary (with Color by Zone Type on)." },
+    { "dungeon", "Dungeon", "A sample dungeon, in the Dungeon Zone Color." },
+    { "raid", "Raid", "A sample raid, in the Raid Zone Color." },
+}
+local function PreviewZoneType() return GetDB("presencePreviewZoneType", "current") end
+local function IsZonePreview() return PreviewType() == "ZONE_CHANGE" or PreviewType() == "SUBZONE_CHANGE" end
+
 local function AddPreview(list)
-    list:Dropdown("Preview Banner", PreviewOptions, PreviewType,
+    local bannerRow = list:Dropdown("Preview Banner", PreviewOptions, PreviewType,
         function(value)
             ToastBannersDB.presencePreviewType = value
             addon.Presence.RefreshPreviewWindow(value)
         end,
         "The banner Show Preview and Preview Window show.")
+
+    -- beside it, the zone type for Zone Entry and Subzone Change
+    bannerRow.Control.Dropdown:SetWidth(180)
+    local zoneDropdown = CreateFrame("DropdownButton", nil, bannerRow, "WowStyle1DropdownTemplate")
+    zoneDropdown:SetWidth(130)
+    zoneDropdown:SetPoint("LEFT", bannerRow.Control, "RIGHT", 6, 0)
+    zoneDropdown:HookScript("OnEnter", function(dropdown)
+        Tip:SetOwner(dropdown, "ANCHOR_RIGHT", -10, 0)
+        GameTooltip_AddHighlightLine(Tip, "Zone Type")
+        GameTooltip_AddNormalLine(Tip, "The kind of zone a Zone Entry or Subzone Change banner is previewed as.", true)
+        if not IsZonePreview() then
+            GameTooltip_AddErrorLine(Tip, "Only for Zone Entry and Subzone Change.", true)
+        end
+        Tip:Show()
+    end)
+    zoneDropdown:HookScript("OnLeave", function() Tip:Hide() end)
+    local zoneMenuSetUp = false
+    list:OnRefresh(function()
+        if zoneMenuSetUp then
+            zoneDropdown:GenerateMenu()
+        else
+            -- set up once the saved settings are loaded (the page opens), like the other dropdowns
+            zoneDropdown:SetupMenu(function(_, root)
+                for _, entry in ipairs(PREVIEW_ZONE_TYPES) do
+                    local radio = root:CreateRadio(entry[2],
+                        function() return PreviewZoneType() == entry[1] end,
+                        function()
+                            ToastBannersDB.presencePreviewZoneType = entry[1]
+                            addon.Presence.RefreshPreviewWindow()
+                        end)
+                    radio:SetTooltip(function(tip)
+                        GameTooltip_SetTitle(tip, entry[2])
+                        GameTooltip_AddNormalLine(tip, entry[3])
+                    end)
+                end
+            end)
+            zoneMenuSetUp = true
+        end
+        zoneDropdown:SetEnabled(IsZonePreview())
+    end)
     local row = list:Button("Show Preview", function()
         addon.Presence.PreviewToast(PreviewType())
     end, "Plays the banner on screen, as it appears in game. The settings window disappears while it plays, so "

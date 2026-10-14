@@ -520,9 +520,10 @@ end
 
 -- Returns a color for the current zone PvP type (friendly/hostile/contested/sanctuary).
 -- Uses user-configured colors if set, otherwise sane defaults.
+-- @param pvpType string|nil A zone type to use instead of the current zone's (a preview's chosen zone type)
 -- @return table|nil {r,g,b} or nil if zone type is unknown
-local function GetZoneTypeColor()
-    local pvpType = (C_PvP and C_PvP.GetZonePVPInfo) and C_PvP.GetZonePVPInfo() or (GetZonePVPInfo and GetZonePVPInfo()) or nil
+local function GetZoneTypeColor(pvpType)
+    pvpType = pvpType or (C_PvP and C_PvP.GetZonePVPInfo) and C_PvP.GetZonePVPInfo() or (GetZonePVPInfo and GetZonePVPInfo()) or nil
     if not pvpType or pvpType == "" then return nil end
     local colorKey
     if pvpType == "friendly" then
@@ -590,7 +591,7 @@ local function resolveColors(typeName, cfg, opts)
     end
     -- Zone-type coloring for zone/subzone changes when enabled
     if isZone and addon.GetDB and addon.GetDB("presenceZoneTypeColoring", false) then
-        local ztc = GetZoneTypeColor()
+        local ztc = GetZoneTypeColor(opts.previewZoneType)
         if ztc then
             local subCat = cfg.subCategory or "DEFAULT"
             local sc = getCategoryColor(subCat, { 1, 1, 1 })
@@ -1854,23 +1855,38 @@ local function BuildLevelUpDetails(info)
     return next(details) and details or nil
 end
 
+-- Sample names for previewing zone banners as a dungeon or raid
+local PREVIEW_INSTANCES = {
+    dungeon = { zone = "The Deadmines", sub = "Ironclad Cove", category = "DUNGEON" },
+    raid    = { zone = "Molten Core", sub = "Ragnaros' Lair", category = "RAID" },
+}
+
 -- Build preview sample for a toast type. Uses addon.L for localized strings.
 -- @param typeName string One of TYPES keys
 -- @return table|nil { title, subtitle, opts?, withDiscovery? } or nil if unknown
 local function getPreviewSample(typeName)
     if not TYPES[typeName] then return nil end
     local L = addon.L or {}
-    if typeName == "ZONE_CHANGE" then
-        local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
-        if addon.GetDB("presenceZoneEntryNameOnly", false) then sub = "" end
-        return { title = zone ~= "" and zone or "Elwynn Forest", subtitle = sub ~= zone and sub or "", withDiscovery = true }
-    end
-    if typeName == "SUBZONE_CHANGE" then
-        local zone, sub = GetZoneText() or "", GetSubZoneText() or ""
-        if sub == "" or sub == zone then
-            return { title = "Goldshire", subtitle = zone ~= "" and zone or "Elwynn Forest", withDiscovery = true }
+    if typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE" then
+        -- the zone type chosen beside Preview Banner: the current zone, a PvP zone type (colored as one, with the
+        -- current zone's names) or a dungeon or raid (with sample names)
+        local zoneType = addon.GetDB("presencePreviewZoneType", "current")
+        local instance = PREVIEW_INSTANCES[zoneType]
+        local zone, sub, opts
+        if instance then
+            zone, sub, opts = instance.zone, instance.sub, { category = instance.category }
+        else
+            zone, sub = GetZoneText() or "", GetSubZoneText() or ""
+            if zone == "" then zone = "Elwynn Forest" end
+            if sub == zone then sub = "" end
+            if sub == "" and typeName == "SUBZONE_CHANGE" then sub = "Goldshire" end
+            opts = (zoneType ~= "current") and { previewZoneType = zoneType } or nil
         end
-        return { title = sub, subtitle = zone, withDiscovery = true }
+        if typeName == "ZONE_CHANGE" then
+            if addon.GetDB("presenceZoneEntryNameOnly", false) then sub = "" end
+            return { title = zone, subtitle = sub, opts = opts, withDiscovery = true }
+        end
+        return { title = sub, subtitle = zone, opts = opts, withDiscovery = true }
     end
     if typeName == "QUEST_ACCEPT" then
         return { title = L["PRESENCE_QUEST_ACCEPTED"], subtitle = L["PRESENCE_THE_FATE_OF_THE_HORDE"], opts = { previewAtlas = "QuestNormal" } }
