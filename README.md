@@ -31,7 +31,7 @@ Suite's core they use.
 ## Install
 
 Download `ToastBanners-<version>.zip` from the [latest release](../../releases/latest) and extract the `ToastBanners`
-folder into `World of Warcraft\_classic_beta_\Interface\AddOns\` (retail: `_retail_`).
+folder into `World of Warcraft\_forever_\Interface\AddOns\` (retail: `_retail_`).
 
 An addon manager that installs from GitHub releases (e.g. WowUp: *Install from URL* with this repo's URL) can also
 install and update it.
